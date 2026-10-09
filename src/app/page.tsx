@@ -9,9 +9,20 @@ interface Message {
   content: string;
 }
 
+type Topic = "emotions" | "work" | "people" | "life" | "sports" | null;
+
+const TOPICS: { id: Topic; label: string }[] = [
+  { id: "emotions", label: "Emotions" },
+  { id: "work", label: "Work" },
+  { id: "people", label: "People" },
+  { id: "life", label: "Life" },
+  { id: "sports", label: "Sports" },
+];
+
 interface BurnEntry {
   date: number;
   mode: Mode;
+  topic?: string;
   messageCount: number;
 }
 
@@ -195,6 +206,7 @@ export default function Home() {
   const [showTorchConfirm, setShowTorchConfirm] = useState(false);
   const [showIconGuide, setShowIconGuide] = useState(true);
   const [inkMode, setInkMode] = useState(false);
+  const [topic, setTopic] = useState<Topic>(null);
   const [inkMessages, setInkMessages] = useState<Set<number>>(new Set());
   const [revealedMessages, setRevealedMessages] = useState<Set<number>>(new Set());
 
@@ -246,7 +258,7 @@ export default function Home() {
   const fetchResponse = async (msgs: Message[], mode: Mode) => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: msgs, mode }) });
+      const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: msgs, mode, topic }) });
       if (!res.ok) throw new Error("Failed");
       const data = await res.json();
       const withResponse = [...msgs, { role: "assistant" as const, content: data.content }];
@@ -305,7 +317,7 @@ export default function Home() {
     // Log the burn if signed in
     if (isLoggedIn && email && activeMode && messages.length > 0) {
       const log = getBurnLog(email);
-      log.burns.push({ date: Date.now(), mode: activeMode, messageCount: messages.filter(m => m.role === "user").length });
+      log.burns.push({ date: Date.now(), mode: activeMode, topic: topic || undefined, messageCount: messages.filter(m => m.role === "user").length });
       saveBurnLog(email, log);
     }
     setMessages([]);
@@ -525,10 +537,31 @@ export default function Home() {
         </div>
       )}
 
+      {/* Topic selector */}
+      <div className="border-b border-border bg-white/40 px-4 py-2">
+        <div className="max-w-2xl mx-auto flex items-center gap-2">
+          <span className="text-[11px] text-foreground/40 shrink-0">dumping about</span>
+          <div className="flex gap-1.5 flex-wrap">
+            {TOPICS.map(t => (
+              <button
+                key={t.id}
+                onClick={() => setTopic(topic === t.id ? null : t.id)}
+                className="text-[11px] px-2.5 py-1 rounded-full cursor-pointer transition-all font-medium"
+                style={topic === t.id
+                  ? { background: currentMode?.color, color: "#fff" }
+                  : { background: "transparent", border: "1px solid #d6d0c4", color: "#888" }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-2xl mx-auto space-y-4">
           {messages.length === 0 && (
-            <div className="text-center py-20">
+            <div className="text-center py-16">
               {CurrentCharacter && <div className="flex justify-center mb-4"><CurrentCharacter size={72} /></div>}
               <p className="text-lg font-semibold mb-1" style={{ color: currentMode?.color }}>{currentMode?.label}</p>
               <p className="text-sm text-muted">{activeMode === "silence" ? "Type whatever you need to. No one's listening." : "Start typing. Let it out."}</p>
