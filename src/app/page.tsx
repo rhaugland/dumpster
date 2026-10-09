@@ -161,12 +161,18 @@ export default function Home() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const [showTorchConfirm, setShowTorchConfirm] = useState(false);
+  const [showIconGuide, setShowIconGuide] = useState(true);
   const [inkMode, setInkMode] = useState(false);
   const [inkMessages, setInkMessages] = useState<Set<number>>(new Set());
   const [revealedMessages, setRevealedMessages] = useState<Set<number>>(new Set());
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
   useEffect(() => { if (activeMode) inputRef.current?.focus(); }, [activeMode]);
+
+  // Check if icon guide was dismissed
+  useEffect(() => {
+    if (localStorage.getItem("dumpster-guide-dismissed")) setShowIconGuide(false);
+  }, []);
 
   // Clean up any expired saved messages on load
   useEffect(() => {
@@ -354,7 +360,8 @@ export default function Home() {
             })}
           </div>
 
-          <p className="text-xs mt-10 text-muted/40">anonymous by default &middot; everything auto-deletes in 24 hours</p>
+          <p className="text-xs mt-10 text-muted/40">everything auto-deletes in 24 hours</p>
+          <p className="text-xs mt-1.5 text-muted/40">your trash is your trash. we don&apos;t dig through it.</p>
         </div>
       </div>
     );
@@ -383,6 +390,42 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {/* Icon guide */}
+      {showIconGuide && (
+        <div className="border-b border-border bg-white/60 px-4 py-2.5">
+          <div className="max-w-2xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-5 text-[11px] text-foreground/50">
+              <div className="flex items-center gap-1.5">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                  <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                  <line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+                invisible ink
+              </div>
+              <div className="flex items-center gap-1.5">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2C8 6 6 9 6 12.5C6 16 8.7 19 12 19C15.3 19 18 16 18 12.5C18 9 16 6 12 2Z" fill="#e25a3e" opacity="0.5" stroke="#cc4444" strokeWidth="1.5"/>
+                  <path d="M12 9C10.5 11 10 12.5 10 13.5C10 15 10.9 16 12 16C13.1 16 14 15 14 13.5C14 12.5 13.5 11 12 9Z" fill="#f5b731" stroke="#e09a28" strokeWidth="1"/>
+                </svg>
+                torch it
+              </div>
+              <div className="flex items-center gap-1.5">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 2L11 13" />
+                  <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+                </svg>
+                send
+              </div>
+            </div>
+            <button
+              onClick={() => { setShowIconGuide(false); localStorage.setItem("dumpster-guide-dismissed", "true"); }}
+              className="text-foreground/30 hover:text-foreground/60 cursor-pointer text-sm leading-none ml-4"
+            >&times;</button>
+          </div>
+        </div>
+      )}
 
       {/* Login modal (chat view) */}
       {showLogin && !isLoggedIn && (
@@ -422,7 +465,7 @@ export default function Home() {
           {messages.map((msg, i) => {
             const isInk = inkMessages.has(i);
             const isRevealed = revealedMessages.has(i);
-            const isHidden = isInk && !isRevealed;
+            const isHidden = inkMode || (isInk && !isRevealed);
             return (
               <div key={i} className={`animate-fade-up flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                 {msg.role === "assistant" && CurrentCharacter && <div className="shrink-0 mr-2 mt-1"><CurrentCharacter size={26} /></div>}
