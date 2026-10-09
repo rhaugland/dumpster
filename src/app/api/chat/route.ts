@@ -4,11 +4,12 @@ import { NextRequest, NextResponse } from "next/server";
 const anthropic = new Anthropic();
 
 const TOPIC_CONTEXT: Record<string, string> = {
-  emotions: "The user is venting about their emotions and inner feelings — anxiety, sadness, frustration, overwhelm, confusion about how they feel.",
-  work: "The user is venting about work — their boss, coworkers, deadlines, office politics, career frustrations, burnout, or job stress.",
-  people: "The user is venting about someone specific — a friend, partner, family member, roommate, or someone who wronged them.",
-  life: "The user is venting about life in general — feeling stuck, big decisions, money, health, existential dread, or things just not going right.",
-  sports: "The user is venting about sports — their team lost, bad calls, trades, players, fantasy leagues, or sports-related frustration.",
+  work: "The user is venting about work — their boss, coworkers, deadlines, office politics, career frustrations, burnout, getting passed over, or job stress.",
+  relationships: "The user is venting about a relationship — partner, ex, situationship, dating, marriage, heartbreak, fights, trust issues, or toxic dynamics.",
+  life: "The user is venting about life in general — feeling stuck, big decisions, money, health, existential dread, adulting, or things just not going right.",
+  school: "The user is venting about school — professors, grades, group projects, studying, applications, student debt, campus drama, or academic pressure.",
+  emotions: "The user is venting about their emotions and inner feelings — anxiety, sadness, frustration, overwhelm, loneliness, anger, or confusion about how they feel.",
+  sports: "The user is venting about sports — their team lost, bad calls, trades, players choking, fantasy leagues, rivalries, or sports-related heartbreak.",
 };
 
 const SYSTEM_PROMPTS: Record<string, string> = {

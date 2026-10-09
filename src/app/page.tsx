@@ -9,13 +9,14 @@ interface Message {
   content: string;
 }
 
-type Topic = "emotions" | "work" | "people" | "life" | "sports" | null;
+type Topic = "work" | "relationships" | "life" | "school" | "emotions" | "sports" | null;
 
 const TOPICS: { id: Topic; label: string }[] = [
-  { id: "emotions", label: "Emotions" },
   { id: "work", label: "Work" },
-  { id: "people", label: "People" },
+  { id: "relationships", label: "Relationships" },
   { id: "life", label: "Life" },
+  { id: "school", label: "School" },
+  { id: "emotions", label: "Emotions" },
   { id: "sports", label: "Sports" },
 ];
 
