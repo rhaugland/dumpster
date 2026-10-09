@@ -9,6 +9,38 @@ interface Message {
   content: string;
 }
 
+interface BurnEntry {
+  date: number;
+  mode: Mode;
+  messageCount: number;
+}
+
+interface BurnLog {
+  burns: BurnEntry[];
+}
+
+function getBurnLog(email: string): BurnLog {
+  try {
+    const raw = localStorage.getItem(`dumpster-burnlog-${email}`);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return { burns: [] };
+}
+
+function saveBurnLog(email: string, log: BurnLog) {
+  localStorage.setItem(`dumpster-burnlog-${email}`, JSON.stringify(log));
+}
+
+function getBurnStats(log: BurnLog) {
+  const total = log.burns.length;
+  const modeCounts: Record<string, number> = {};
+  log.burns.forEach(b => { modeCounts[b.mode] = (modeCounts[b.mode] || 0) + 1; });
+  const topMode = Object.entries(modeCounts).sort((a, b) => b[1] - a[1])[0];
+  const lastWeek = log.burns.filter(b => b.date > Date.now() - 7 * 86400000).length;
+  const totalMessages = log.burns.reduce((s, b) => s + b.messageCount, 0);
+  return { total, topMode: topMode?.[0] as Mode | undefined, topModeCount: topMode?.[1] || 0, lastWeek, totalMessages };
+}
+
 /* ── SVG Characters ── */
 
 function BullSVG({ size = 64 }: { size?: number }) {
@@ -270,6 +302,12 @@ export default function Home() {
   };
 
   const torchIt = () => {
+    // Log the burn if signed in
+    if (isLoggedIn && email && activeMode && messages.length > 0) {
+      const log = getBurnLog(email);
+      log.burns.push({ date: Date.now(), mode: activeMode, messageCount: messages.filter(m => m.role === "user").length });
+      saveBurnLog(email, log);
+    }
     setMessages([]);
     setInkMessages(new Set());
     setRevealedMessages(new Set());
@@ -293,7 +331,7 @@ export default function Home() {
             </div>
           ) : (
             <div className="text-right">
-              <p className="text-xs text-foreground/40 mb-0.5">want to come back later?</p>
+              <p className="text-xs text-foreground/40 mb-0.5">see what you keep burning</p>
               <button onClick={() => { setShowLogin(true); setAuthMode("login"); }} className="text-sm text-foreground/60 hover:text-foreground cursor-pointer font-medium">sign in</button>
               <span className="text-foreground/30 mx-1">or</span>
               <button onClick={() => { setShowLogin(true); setAuthMode("signup"); }} className="text-sm text-foreground/60 hover:text-foreground cursor-pointer font-medium">sign up</button>
@@ -305,7 +343,7 @@ export default function Home() {
           <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 flex items-center justify-center p-4">
             <div className="relative bg-white rounded-2xl p-8 w-full max-w-sm shadow-md border border-border">
               <h3 className="text-lg font-semibold mb-1">{authMode === "login" ? "Welcome back" : "Create account"}</h3>
-              <p className="text-sm text-muted mb-6">Save your sessions for 24 hours</p>
+              <p className="text-sm text-muted mb-6">We never save what you say &mdash; just how often you torch it, and where.</p>
               {authError && <p className="text-sm text-bull mb-4">{authError}</p>}
               <input type="email" placeholder="email" value={email} onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-background border border-border rounded-lg px-4 py-3 mb-3 text-sm focus:outline-none focus:border-muted" />
@@ -360,6 +398,41 @@ export default function Home() {
             })}
           </div>
 
+          {/* Burn log stats for logged-in users */}
+          {isLoggedIn && email && (() => {
+            const stats = getBurnStats(getBurnLog(email));
+            if (stats.total === 0) return null;
+            const modeLabel = MODES.find(m => m.id === stats.topMode)?.label;
+            return (
+              <div className="w-full max-w-lg mt-8 bg-white border border-border rounded-2xl p-5">
+                <p className="text-xs font-bold text-foreground/60 uppercase tracking-wider mb-3">Your burn log</p>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <p className="text-2xl font-black text-foreground">{stats.total}</p>
+                    <p className="text-[11px] text-foreground/40">{stats.total === 1 ? "conversation" : "conversations"} torched</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-black text-foreground">{stats.lastWeek}</p>
+                    <p className="text-[11px] text-foreground/40">this week</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-black" style={{ color: MODES.find(m => m.id === stats.topMode)?.color }}>{modeLabel || "—"}</p>
+                    <p className="text-[11px] text-foreground/40">most used</p>
+                  </div>
+                </div>
+                {stats.topMode && stats.total >= 3 && (
+                  <p className="text-xs text-foreground/40 mt-3 text-center italic">
+                    {stats.topMode === "bull" && "You've been running hot. A lot of rage in here."}
+                    {stats.topMode === "devil" && "You keep looking for the other side. Something unresolved?"}
+                    {stats.topMode === "wizard" && "Seeking answers. You already know more than you think."}
+                    {stats.topMode === "lol" && "Laughing through it. Sometimes that's the move."}
+                    {stats.topMode === "silence" && "A lot of silent burns. Sometimes the quiet ones hit hardest."}
+                  </p>
+                )}
+              </div>
+            );
+          })()}
+
           <p className="text-xs mt-10 text-muted/40">everything auto-deletes in 24 hours</p>
           <p className="text-xs mt-1.5 text-muted/40">your trash is your trash. we don&apos;t dig through it.</p>
         </div>
@@ -383,7 +456,7 @@ export default function Home() {
           <span className="text-xs text-muted w-14 text-right truncate">{email}</span>
         ) : (
           <div className="text-right">
-            <p className="text-[10px] text-foreground/40 mb-0.5">want to come back later?</p>
+            <p className="text-[10px] text-foreground/40 mb-0.5">see what you keep burning</p>
             <button onClick={() => { setShowLogin(true); setAuthMode("login"); }} className="text-xs text-foreground/60 hover:text-foreground cursor-pointer font-medium">sign in</button>
             <span className="text-foreground/30 mx-1 text-xs">or</span>
             <button onClick={() => { setShowLogin(true); setAuthMode("signup"); }} className="text-xs text-foreground/60 hover:text-foreground cursor-pointer font-medium">sign up</button>
@@ -432,7 +505,7 @@ export default function Home() {
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 flex items-center justify-center p-4">
           <div className="relative bg-white rounded-2xl p-8 w-full max-w-sm shadow-md border border-border">
             <h3 className="text-lg font-semibold mb-1">{authMode === "login" ? "Welcome back" : "Create account"}</h3>
-            <p className="text-sm text-muted mb-6">Save your sessions for 24 hours</p>
+            <p className="text-sm text-muted mb-6">We never save what you say &mdash; just how often you torch it, and where.</p>
             {authError && <p className="text-sm text-bull mb-4">{authError}</p>}
             <input type="email" placeholder="email" value={email} onChange={(e) => setEmail(e.target.value)}
               className="w-full bg-background border border-border rounded-lg px-4 py-3 mb-3 text-sm focus:outline-none focus:border-muted" />
