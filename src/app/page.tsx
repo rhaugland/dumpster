@@ -20,6 +20,57 @@ const TOPICS: { id: Topic; label: string }[] = [
   { id: "sports", label: "Sports" },
 ];
 
+const QUICK_SCENARIOS: Record<string, string[]> = {
+  work: [
+    "My boss is driving me insane",
+    "I got passed over for a promotion",
+    "A coworker threw me under the bus",
+    "I'm completely burned out",
+    "I hate my job but can't quit",
+    "Meeting that should've been an email",
+  ],
+  relationships: [
+    "We got in a huge fight",
+    "I think they're losing interest",
+    "My ex reached out",
+    "I keep getting ghosted",
+    "My partner doesn't listen to me",
+    "I caught them in a lie",
+  ],
+  life: [
+    "I feel completely stuck",
+    "Money is stressing me out",
+    "I don't know what I'm doing with my life",
+    "Everything is falling apart at once",
+    "I made a huge mistake",
+    "I can't catch a break",
+  ],
+  school: [
+    "My professor is the worst",
+    "Group project nightmare",
+    "I bombed an exam",
+    "I'm drowning in assignments",
+    "I don't even know why I'm here",
+    "Student loans are crushing me",
+  ],
+  emotions: [
+    "I'm so angry I can't think straight",
+    "I feel lonely even around people",
+    "I can't stop overthinking everything",
+    "I'm anxious and I don't know why",
+    "I'm sad and don't want to talk about it",
+    "I feel numb",
+  ],
+  sports: [
+    "My team just blew a huge lead",
+    "The refs completely robbed us",
+    "They traded my favorite player",
+    "Fantasy league is ruining my life",
+    "We lost to our biggest rival",
+    "The coach has no idea what they're doing",
+  ],
+};
+
 interface BurnEntry {
   date: number;
   mode: Mode;
@@ -562,10 +613,38 @@ export default function Home() {
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-2xl mx-auto space-y-4">
           {messages.length === 0 && (
-            <div className="text-center py-16">
+            <div className="text-center py-10">
               {CurrentCharacter && <div className="flex justify-center mb-4"><CurrentCharacter size={72} /></div>}
               <p className="text-lg font-semibold mb-1" style={{ color: currentMode?.color }}>{currentMode?.label}</p>
-              <p className="text-sm text-muted">{activeMode === "silence" ? "Type whatever you need to. No one's listening." : "Start typing. Let it out."}</p>
+              <p className="text-sm text-muted mb-6">{activeMode === "silence" ? "Type whatever you need to. No one's listening." : "Start typing, or pick one."}</p>
+
+              {topic && QUICK_SCENARIOS[topic] && (
+                <div className="flex flex-wrap justify-center gap-2 max-w-md mx-auto">
+                  {QUICK_SCENARIOS[topic].map((scenario) => (
+                    <button
+                      key={scenario}
+                      onClick={() => {
+                        setInput(scenario);
+                        setTimeout(() => {
+                          const userMsg: Message = { role: "user", content: scenario };
+                          const newMessages = [userMsg];
+                          setMessages(newMessages);
+                          setInput("");
+                          if (activeMode === "silence") { saveMessages(newMessages, activeMode); return; }
+                          fetchResponse(newMessages, activeMode!);
+                        }, 0);
+                      }}
+                      className="text-xs px-3 py-2 rounded-full bg-white border border-border hover:border-muted/50 hover:shadow-sm cursor-pointer transition-all text-foreground/60 hover:text-foreground"
+                    >
+                      {scenario}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {!topic && activeMode !== "silence" && (
+                <p className="text-xs text-muted/50 mt-2">pick a topic above for quick starts</p>
+              )}
             </div>
           )}
 
