@@ -257,8 +257,11 @@ export default function Home() {
 
   const [showTorchConfirm, setShowTorchConfirm] = useState(false);
   const [showIconGuide, setShowIconGuide] = useState(true);
+  const [showGuardrails, setShowGuardrails] = useState(false);
   const [inkMode, setInkMode] = useState(false);
   const [topic, setTopic] = useState<Topic>(null);
+  const [guardrails, setGuardrails] = useState<string[]>([]);
+  const [newGuardrail, setNewGuardrail] = useState("");
   const [inkMessages, setInkMessages] = useState<Set<number>>(new Set());
   const [revealedMessages, setRevealedMessages] = useState<Set<number>>(new Set());
 
@@ -291,6 +294,11 @@ export default function Home() {
       if (parsed.expiresAt > Date.now()) {
         setIsLoggedIn(true);
         setEmail(parsed.email);
+        // Load guardrails
+        try {
+          const gr = localStorage.getItem(`dumpster-guardrails-${parsed.email}`);
+          if (gr) setGuardrails(JSON.parse(gr));
+        } catch {}
         const saved = localStorage.getItem(`dumpster-msgs-${parsed.email}`);
         if (saved) {
           const data = JSON.parse(saved);
@@ -310,7 +318,7 @@ export default function Home() {
   const fetchResponse = async (msgs: Message[], mode: Mode) => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: msgs, mode, topic }) });
+      const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: msgs, mode, topic, guardrails: guardrails.length > 0 ? guardrails : undefined }) });
       if (!res.ok) throw new Error("Failed");
       const data = await res.json();
       const withResponse = [...msgs, { role: "assistant" as const, content: data.content }];
@@ -379,6 +387,20 @@ export default function Home() {
     setShowTorchConfirm(false);
   };
 
+  const addGuardrail = () => {
+    if (!newGuardrail.trim()) return;
+    const updated = [...guardrails, newGuardrail.trim()];
+    setGuardrails(updated);
+    setNewGuardrail("");
+    if (email) localStorage.setItem(`dumpster-guardrails-${email}`, JSON.stringify(updated));
+  };
+
+  const removeGuardrail = (index: number) => {
+    const updated = guardrails.filter((_, i) => i !== index);
+    setGuardrails(updated);
+    if (email) localStorage.setItem(`dumpster-guardrails-${email}`, JSON.stringify(updated));
+  };
+
   const currentMode = MODES.find((m) => m.id === activeMode);
   const CurrentCharacter = activeMode ? CHARACTER_MAP[activeMode] : null;
 
@@ -390,6 +412,11 @@ export default function Home() {
         <div className="fixed top-4 right-4 z-50">
           {isLoggedIn ? (
             <div className="flex items-center gap-3 text-sm text-muted">
+              <button onClick={() => setShowGuardrails(true)} className="text-muted hover:text-foreground cursor-pointer" title="Guardrails">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+              </button>
               <span>{email}</span>
               <button onClick={() => { localStorage.removeItem("dumpster-session"); setIsLoggedIn(false); setEmail(""); setPassword(""); }} className="text-muted hover:text-foreground cursor-pointer">logout</button>
             </div>
@@ -423,6 +450,59 @@ export default function Home() {
                   : <>Have an account? <button onClick={() => { setAuthMode("login"); setAuthError(""); }} className="text-foreground hover:underline cursor-pointer">Sign in</button></>}
               </p>
               <button onClick={() => { setShowLogin(false); setAuthError(""); }} className="absolute top-3 right-4 text-muted hover:text-foreground cursor-pointer text-xl">&times;</button>
+            </div>
+          </div>
+        )}
+
+        {/* Guardrails modal */}
+        {showGuardrails && isLoggedIn && (
+          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+            <div className="relative bg-white rounded-2xl p-8 w-full max-w-md shadow-md border border-border">
+              <div className="flex items-center gap-2 mb-1">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                <h3 className="text-lg font-semibold">Guardrails</h3>
+              </div>
+              <p className="text-sm text-muted mb-5">Things you don&apos;t want to spiral into. Dumpster will steer you away.</p>
+
+              {guardrails.length > 0 && (
+                <div className="space-y-2 mb-4">
+                  {guardrails.map((gr, i) => (
+                    <div key={i} className="flex items-start gap-2 bg-background rounded-xl px-3 py-2.5 text-sm text-foreground/80">
+                      <span className="flex-1">{gr}</span>
+                      <button onClick={() => removeGuardrail(i)} className="shrink-0 text-muted hover:text-bull cursor-pointer text-xs mt-0.5">&times;</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {guardrails.length === 0 && (
+                <div className="bg-background rounded-xl px-4 py-6 text-center mb-4">
+                  <p className="text-sm text-muted/60 italic">No guardrails yet</p>
+                  <p className="text-xs text-muted/40 mt-1">e.g. &ldquo;Don&apos;t let me spiral into planning revenge&rdquo;</p>
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newGuardrail}
+                  onChange={(e) => setNewGuardrail(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addGuardrail()}
+                  placeholder="Don't let me..."
+                  className="flex-1 bg-background border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-muted"
+                />
+                <button
+                  onClick={addGuardrail}
+                  disabled={!newGuardrail.trim()}
+                  className="px-4 py-2.5 bg-foreground text-white rounded-lg text-sm font-medium hover:opacity-90 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  Add
+                </button>
+              </div>
+
+              <button onClick={() => setShowGuardrails(false)} className="absolute top-3 right-4 text-muted hover:text-foreground cursor-pointer text-xl">&times;</button>
             </div>
           </div>
         )}

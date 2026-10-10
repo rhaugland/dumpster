@@ -24,7 +24,7 @@ const SYSTEM_PROMPTS: Record<string, string> = {
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, mode, topic } = await req.json();
+    const { messages, mode, topic, guardrails } = await req.json();
 
     if (mode === "silence") {
       return NextResponse.json({ content: "" });
@@ -36,7 +36,13 @@ export async function POST(req: NextRequest) {
     }
 
     const topicContext = topic && TOPIC_CONTEXT[topic] ? `\n\nContext: ${TOPIC_CONTEXT[topic]}` : "";
-    const systemPrompt = basePrompt + topicContext;
+
+    let guardrailContext = "";
+    if (guardrails && Array.isArray(guardrails) && guardrails.length > 0) {
+      guardrailContext = `\n\nIMPORTANT GUARDRAILS — The user has set personal boundaries. If the conversation starts drifting toward any of these patterns, gently but firmly redirect them. Acknowledge what they're feeling, but steer them back. Don't lecture — just nudge. Their guardrails:\n${guardrails.map((g: string) => `- ${g}`).join("\n")}`;
+    }
+
+    const systemPrompt = basePrompt + topicContext + guardrailContext;
 
     const apiMessages = messages.map(
       (m: { role: string; content: string }) => ({
