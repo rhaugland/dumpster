@@ -21,9 +21,34 @@ body {
   color: var(--color-foreground);
 }
 
+/* Dark mode overrides */
+html.dark {
+  --color-background: #1a1a1f;
+  --color-foreground: #e0ddd8;
+  --color-surface: #26262b;
+  --color-surface-hover: #2e2e34;
+  --color-border: #3a3a40;
+  --color-muted: #777;
+}
+html.dark body { background: var(--color-background); color: var(--color-foreground); }
+html.dark .bg-white { background: var(--color-surface) !important; }
+html.dark .bg-white\/60 { background: rgba(38,38,43,0.6) !important; }
+html.dark .bg-white\/40 { background: rgba(38,38,43,0.4) !important; }
+html.dark .bg-white\/80 { background: rgba(38,38,43,0.8) !important; }
+html.dark .bg-white\/95 { background: rgba(38,38,43,0.95) !important; }
+html.dark .bg-background { background: var(--color-background) !important; }
+html.dark .border-border { border-color: var(--color-border) !important; }
+html.dark .text-foreground { color: var(--color-foreground) !important; }
+html.dark input, html.dark textarea { background: var(--color-background) !important; color: var(--color-foreground) !important; border-color: var(--color-border) !important; }
+
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #d6d0c4; border-radius: 3px; }
+html.dark ::-webkit-scrollbar-thumb { background: #444; }
+
+/* Hide scrollbar for horizontal topic pills */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(6px); }
@@ -40,3 +65,87 @@ body {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
+
+/* Torch burn animation */
+@keyframes burnAway {
+  0% { opacity: 1; transform: scale(1); filter: brightness(1); }
+  40% { opacity: 0.8; transform: scale(1.02); filter: brightness(1.5) sepia(1) saturate(3) hue-rotate(-10deg); }
+  70% { opacity: 0.4; transform: scale(0.95) translateY(-4px); filter: brightness(2) sepia(1) saturate(5) hue-rotate(-20deg); }
+  100% { opacity: 0; transform: scale(0.8) translateY(-12px); filter: brightness(3) sepia(1); }
+}
+.animate-burn { animation: burnAway 0.6s ease-in forwards; }
+
+/* Mood check-in scale */
+@keyframes popIn {
+  0% { transform: scale(0.5); opacity: 0; }
+  70% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-pop { animation: popIn 0.3s ease-out forwards; }
+
+/* Crumple animation — messages shrink and twist into center */
+@keyframes crumpleMsg {
+  0% { opacity: 1; transform: scale(1) rotate(0deg); }
+  50% { opacity: 0.6; transform: scale(0.5) rotate(5deg); }
+  100% { opacity: 0; transform: scale(0.1) rotate(15deg) translateY(-40px); }
+}
+.animate-crumple { animation: crumpleMsg 0.5s ease-in forwards; }
+
+/* Ball arc toss into trash can */
+@keyframes tossArc {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; }
+  50% { transform: translate(0, -120px) scale(0.9) rotate(180deg); opacity: 1; }
+  85% { transform: translate(0, -160px) scale(0.7) rotate(300deg); opacity: 1; }
+  100% { transform: translate(0, -180px) scale(0.3) rotate(360deg); opacity: 0; }
+}
+.animate-toss { animation: tossArc 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+
+/* Basketball swish arc */
+@keyframes swishArc {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  40% { transform: translate(30px, -150px) scale(0.85); opacity: 1; }
+  70% { transform: translate(10px, -190px) scale(0.7); opacity: 1; }
+  90% { transform: translate(0, -170px) scale(0.5); opacity: 0.8; }
+  100% { transform: translate(0, -160px) scale(0.3); opacity: 0; }
+}
+.animate-swish { animation: swishArc 0.8s cubic-bezier(0.22, 0.61, 0.36, 1) forwards; }
+
+/* Field goal kick */
+@keyframes kickArc {
+  0% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; }
+  30% { transform: translate(0, -80px) rotate(-20deg) scale(0.9); opacity: 1; }
+  60% { transform: translate(0, -160px) rotate(-10deg) scale(0.7); opacity: 1; }
+  90% { transform: translate(0, -200px) rotate(5deg) scale(0.5); opacity: 0.8; }
+  100% { transform: translate(0, -220px) rotate(10deg) scale(0.3); opacity: 0; }
+}
+.animate-kick { animation: kickArc 0.9s cubic-bezier(0.22, 0.61, 0.36, 1) forwards; }
+
+/* Shred animation — messages slice into strips */
+@keyframes shredSlice {
+  0% { opacity: 1; transform: translateY(0); clip-path: inset(0 0 0 0); }
+  40% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(80px); }
+}
+.animate-shred { animation: shredSlice 0.6s ease-in forwards; }
+
+/* Net wobble after swish */
+@keyframes netWobble {
+  0% { transform: scaleY(1); }
+  25% { transform: scaleY(1.15); }
+  50% { transform: scaleY(0.9); }
+  75% { transform: scaleY(1.05); }
+  100% { transform: scaleY(1); }
+}
+
+/* Goal flash */
+@keyframes goalFlash {
+  0%, 100% { opacity: 0; }
+  30%, 70% { opacity: 1; }
+}
+
+/* Pulse tap hint */
+@keyframes pulseHint {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+.animate-pulse-hint { animation: pulseHint 1.2s ease-in-out infinite; }
