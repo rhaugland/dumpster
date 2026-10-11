@@ -382,9 +382,9 @@ function RiffSVG({ size = 64 }: { size?: number }) {
   );
 }
 
-function DumpsterLogo() {
+function DumpsterLogo({ size = 80 }: { size?: number }) {
   return (
-    <svg width="80" height="80" viewBox="0 0 120 110" fill="none">
+    <svg width={size} height={size} viewBox="0 0 120 110" fill="none">
       <rect x="25" y="38" width="70" height="50" rx="4" fill="#7a8e6e" stroke="#444" strokeWidth="3"/>
       <rect x="22" y="33" width="76" height="10" rx="3" fill="#8a9e7e" stroke="#444" strokeWidth="2.5"/>
       <rect x="40" y="44" width="3.5" height="38" fill="#6a7e5e" rx="1"/>
@@ -1107,7 +1107,7 @@ export default function Home() {
     }
 
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="h-screen flex flex-col overflow-hidden">
         {/* Auth corner */}
         <div className={`fixed top-4 right-4 z-50 ${isMobile && isLoggedIn ? "hidden" : ""}`}>
           {isLoggedIn ? (
@@ -1138,28 +1138,28 @@ export default function Home() {
         </div>
 
         {showLogin && !isLoggedIn && (
-          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 flex items-center justify-center p-4">
-            <div className="relative bg-white rounded-2xl p-8 w-full max-w-sm shadow-md border border-border">
+          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 flex items-end sm:items-center justify-center sm:p-4">
+            <div className="relative bg-white rounded-t-2xl sm:rounded-2xl p-6 sm:p-8 w-full sm:max-w-sm shadow-md border border-border pb-[max(1.5rem,env(safe-area-inset-bottom))]">
               <h3 className="text-lg font-semibold mb-1">{authMode === "login" ? "Welcome back" : "Create account"}</h3>
-              <p className="text-sm text-muted mb-6">We never save what you say &mdash; just how often you torch it, and where.</p>
-              {authError && <p className="text-sm text-bull mb-4">{authError}</p>}
+              <p className="text-xs sm:text-sm text-muted mb-4 sm:mb-6">We never save what you say &mdash; just how often you torch it, and where.</p>
+              {authError && <p className="text-sm text-bull mb-3">{authError}</p>}
               {authMode === "signup" && (
-                <div className="flex gap-2 mb-3">
+                <div className="flex gap-2 mb-2.5 sm:mb-3">
                   <input type="text" placeholder="first name" value={firstName} onChange={(e) => setFirstName(e.target.value)}
-                    className="flex-1 bg-background border border-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-muted" />
+                    className="flex-1 bg-background border border-border rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 text-sm focus:outline-none focus:border-muted" />
                   <input type="text" placeholder="last name" value={lastName} onChange={(e) => setLastName(e.target.value)}
-                    className="flex-1 bg-background border border-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-muted" />
+                    className="flex-1 bg-background border border-border rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 text-sm focus:outline-none focus:border-muted" />
                 </div>
               )}
               <input type="email" placeholder="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-background border border-border rounded-lg px-4 py-3 mb-3 text-sm focus:outline-none focus:border-muted" />
+                className="w-full bg-background border border-border rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 mb-2.5 sm:mb-3 text-sm focus:outline-none focus:border-muted" />
               <input type="password" placeholder="password" value={password} onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleAuth()}
-                className="w-full bg-background border border-border rounded-lg px-4 py-3 mb-4 text-sm focus:outline-none focus:border-muted" />
-              <button onClick={handleAuth} className="w-full bg-foreground text-white rounded-lg py-3 text-sm font-medium hover:opacity-90 cursor-pointer">
+                className="w-full bg-background border border-border rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 mb-3 sm:mb-4 text-sm focus:outline-none focus:border-muted" />
+              <button onClick={handleAuth} className="w-full bg-foreground text-white rounded-lg py-2.5 sm:py-3 text-sm font-medium hover:opacity-90 cursor-pointer">
                 {authMode === "login" ? "Sign in" : "Create account"}
               </button>
-              <p className="text-sm text-muted text-center mt-4">
+              <p className="text-xs sm:text-sm text-muted text-center mt-3 sm:mt-4">
                 {authMode === "login"
                   ? <>No account? <button onClick={() => { setAuthMode("signup"); setAuthError(""); }} className="text-foreground hover:underline cursor-pointer">Sign up</button></>
                   : <>Have an account? <button onClick={() => { setAuthMode("login"); setAuthError(""); }} className="text-foreground hover:underline cursor-pointer">Sign in</button></>}
@@ -1208,87 +1208,97 @@ export default function Home() {
         )}
 
         {/* Hero */}
-        <div className={`flex-1 flex flex-col items-center justify-center px-4 sm:px-6 pt-8 sm:pt-10 ${isMobile && isLoggedIn ? "pb-24" : "pb-6"}`}>
-          <DumpsterLogo />
-          <h1 className="text-4xl sm:text-5xl font-black tracking-tight mt-3 mb-2 text-foreground">Dumpster</h1>
-          <p className="text-muted text-sm sm:text-base mb-4 sm:mb-6">toss it. torch it. move on.</p>
+        <div className={`flex-1 overflow-y-auto px-4 sm:px-6 pt-6 sm:pt-10 ${isMobile && isLoggedIn ? "pb-20" : "pb-6"}`}>
+          <div className="max-w-lg mx-auto flex flex-col items-center">
+            <DumpsterLogo size={isMobile ? 56 : 80} />
+            <h1 className="text-3xl sm:text-5xl font-black tracking-tight mt-2 sm:mt-3 mb-1 sm:mb-2 text-foreground">Dumpster</h1>
+            <p className="text-muted text-xs sm:text-base mb-4 sm:mb-6">toss it. torch it. move on.</p>
 
-          {/* Daily prompt */}
-          <div className="w-full max-w-lg mb-8 sm:mb-10">
-            <p className="text-center text-sm italic text-foreground/40">&ldquo;{getDailyPrompt()}&rdquo;</p>
-          </div>
-
-          {/* Chat list */}
-          <div className="w-full max-w-lg space-y-2.5 sm:space-y-3">
-            {MODES.map((mode, i) => {
-              const Character = CHARACTER_MAP[mode.id];
-              return (
-                <button
-                  key={mode.id}
-                  onClick={() => { setActiveMode(mode.id); setMessages([]); setMobileTab("chats"); setTopic(null); setMoodBefore(null); if (mode.id === "riff") setTopic("life"); }}
-                  className="w-full flex items-center gap-3 sm:gap-4 bg-white border border-border rounded-2xl p-3 sm:p-4 text-left hover:shadow-md hover:border-muted/40 transition-all duration-150 cursor-pointer group"
-                  style={{ animationDelay: `${i * 60}ms`, animation: "fadeUp 0.35s ease-out forwards", opacity: 0 }}
-                >
-                  <div className="shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center" style={{ background: `${mode.color}12` }}>
-                    <Character size={isMobile ? 38 : 46} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="font-bold text-sm" style={{ color: mode.color }}>{mode.label}</span>
-                      <span className="text-xs text-foreground/60">{mode.tagline}</span>
-                    </div>
-                    <p className="text-xs text-foreground/40 truncate italic hidden sm:block">{mode.preview}</p>
-                  </div>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="2" strokeLinecap="round" className="shrink-0 group-hover:stroke-muted transition-colors">
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Burn log stats (desktop) */}
-          {isLoggedIn && email && !isMobile && (() => {
-            const stats = getBurnStats(getBurnLog(email));
-            if (stats.total === 0) return null;
-            const modeLabel = MODES.find(m => m.id === stats.topMode)?.label;
-            return (
-              <div className="w-full max-w-lg mt-8 bg-white border border-border rounded-2xl p-5">
-                <p className="text-xs font-bold text-foreground/60 uppercase tracking-wider mb-3">Your burn log</p>
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div>
-                    <p className="text-2xl font-black text-foreground">{stats.total}</p>
-                    <p className="text-[11px] text-foreground/40">{stats.total === 1 ? "conversation" : "conversations"} torched</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-black text-foreground">{stats.lastWeek}</p>
-                    <p className="text-[11px] text-foreground/40">this week</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-black" style={{ color: MODES.find(m => m.id === stats.topMode)?.color }}>{modeLabel || "---"}</p>
-                    <p className="text-[11px] text-foreground/40">most used</p>
-                  </div>
-                </div>
-                {stats.moodRate !== null && (
-                  <p className="text-xs text-foreground/40 mt-3 text-center">
-                    Felt better after <span className="font-medium text-foreground/60">{stats.moodRate}%</span> of sessions.
-                  </p>
-                )}
-              </div>
-            );
-          })()}
-
-          {!isLoggedIn && (
-            <div className="w-full max-w-lg mt-8 bg-white/60 border border-border rounded-2xl px-5 py-4 text-center">
-              <p className="text-sm text-foreground/50">You&apos;re in guest mode --- just the basics.</p>
-              <p className="text-xs text-foreground/40 mt-1">
-                Create an account to unlock burn stats, streaks, achievements, guardrails, and 24-hour save.
-              </p>
+            {/* Daily prompt — hidden on mobile */}
+            <div className="w-full mb-6 sm:mb-10 hidden sm:block">
+              <p className="text-center text-sm italic text-foreground/40">&ldquo;{getDailyPrompt()}&rdquo;</p>
             </div>
-          )}
 
-          <p className="text-xs mt-10 text-muted/40">everything auto-deletes in 24 hours</p>
-          <p className="text-xs mt-1.5 text-muted/40">your trash is your trash. we don&apos;t dig through it.</p>
+            {/* Guest disclaimer — inline on mobile, above mode list */}
+            {!isLoggedIn && isMobile && (
+              <div className="w-full bg-white/60 border border-border rounded-xl px-3 py-2.5 text-center mb-3">
+                <p className="text-xs text-foreground/50">Guest mode &mdash; <button onClick={() => { setShowLogin(true); setAuthMode("signup"); }} className="underline cursor-pointer text-foreground/70 font-medium">sign up</button> to unlock stats, streaks &amp; more</p>
+              </div>
+            )}
+
+            {/* Chat list */}
+            <div className="w-full space-y-2 sm:space-y-3">
+              {MODES.map((mode, i) => {
+                const Character = CHARACTER_MAP[mode.id];
+                return (
+                  <button
+                    key={mode.id}
+                    onClick={() => { setActiveMode(mode.id); setMessages([]); setMobileTab("chats"); setTopic(null); setMoodBefore(null); if (mode.id === "riff") setTopic("life"); }}
+                    className="w-full flex items-center gap-3 bg-white border border-border rounded-xl sm:rounded-2xl p-2.5 sm:p-4 text-left hover:shadow-md hover:border-muted/40 transition-all duration-150 cursor-pointer group"
+                    style={{ animationDelay: `${i * 60}ms`, animation: "fadeUp 0.35s ease-out forwards", opacity: 0 }}
+                  >
+                    <div className="shrink-0 w-10 h-10 sm:w-14 sm:h-14 rounded-lg sm:rounded-xl flex items-center justify-center" style={{ background: `${mode.color}12` }}>
+                      <Character size={isMobile ? 32 : 46} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm" style={{ color: mode.color }}>{mode.label}</span>
+                        <span className="text-xs text-foreground/60">{mode.tagline}</span>
+                      </div>
+                      <p className="text-xs text-foreground/40 truncate italic hidden sm:block">{mode.preview}</p>
+                    </div>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="2" strokeLinecap="round" className="shrink-0 group-hover:stroke-muted transition-colors">
+                      <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Burn log stats (desktop) */}
+            {isLoggedIn && email && !isMobile && (() => {
+              const stats = getBurnStats(getBurnLog(email));
+              if (stats.total === 0) return null;
+              const modeLabel = MODES.find(m => m.id === stats.topMode)?.label;
+              return (
+                <div className="w-full mt-8 bg-white border border-border rounded-2xl p-5">
+                  <p className="text-xs font-bold text-foreground/60 uppercase tracking-wider mb-3">Your burn log</p>
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <p className="text-2xl font-black text-foreground">{stats.total}</p>
+                      <p className="text-[11px] text-foreground/40">{stats.total === 1 ? "conversation" : "conversations"} torched</p>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-black text-foreground">{stats.lastWeek}</p>
+                      <p className="text-[11px] text-foreground/40">this week</p>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-black" style={{ color: MODES.find(m => m.id === stats.topMode)?.color }}>{modeLabel || "---"}</p>
+                      <p className="text-[11px] text-foreground/40">most used</p>
+                    </div>
+                  </div>
+                  {stats.moodRate !== null && (
+                    <p className="text-xs text-foreground/40 mt-3 text-center">
+                      Felt better after <span className="font-medium text-foreground/60">{stats.moodRate}%</span> of sessions.
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Guest disclaimer (desktop) */}
+            {!isLoggedIn && !isMobile && (
+              <div className="w-full mt-8 bg-white/60 border border-border rounded-2xl px-5 py-4 text-center">
+                <p className="text-sm text-foreground/50">You&apos;re in guest mode &mdash; just the basics.</p>
+                <p className="text-xs text-foreground/40 mt-1">
+                  Create an account to unlock burn stats, streaks, achievements, guardrails, and 24-hour save.
+                </p>
+              </div>
+            )}
+
+            <p className="text-[10px] sm:text-xs mt-6 sm:mt-10 text-muted/40">everything auto-deletes in 24 hours</p>
+            <p className="text-[10px] sm:text-xs mt-1 text-muted/40 mb-4">your trash is your trash. we don&apos;t dig through it.</p>
+          </div>
         </div>
 
         {isMobile && isLoggedIn && <MobileNav />}
@@ -1300,33 +1310,33 @@ export default function Home() {
   /* ─── CHAT ─── */
   return (
     <div className="h-screen flex flex-col relative">
-      <div className="flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 border-b border-border bg-white/80 backdrop-blur-sm">
+      <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-b border-border bg-white/80 backdrop-blur-sm">
         <button onClick={() => { if (!isLoggedIn) setMessages([]); setActiveMode(null); }}
-          className="text-sm text-muted hover:text-foreground cursor-pointer flex items-center gap-1.5 font-medium">
-          <span>&larr;</span> back
+          className="text-sm text-muted hover:text-foreground cursor-pointer flex items-center gap-1 font-medium shrink-0">
+          <span>&larr;</span> <span className="hidden sm:inline">back</span>
         </button>
         {/* Mode switcher */}
-        <button onClick={() => setShowModeSwitcher(!showModeSwitcher)} className="flex items-center gap-2 cursor-pointer group">
-          {CurrentCharacter && <CurrentCharacter size={isMobile ? 22 : 26} />}
+        <button onClick={() => setShowModeSwitcher(!showModeSwitcher)} className="flex items-center gap-1.5 sm:gap-2 cursor-pointer group">
+          {CurrentCharacter && <CurrentCharacter size={isMobile ? 20 : 26} />}
           <span className="font-bold text-sm" style={{ color: currentMode?.color }}>{currentMode?.label}</span>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={currentMode?.color} strokeWidth="2.5" strokeLinecap="round" className="group-hover:translate-y-0.5 transition-transform">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={currentMode?.color} strokeWidth="2.5" strokeLinecap="round" className="group-hover:translate-y-0.5 transition-transform">
             <polyline points="6 9 12 15 18 9" />
           </svg>
         </button>
         {isLoggedIn ? (
           <span className="text-xs text-muted w-14 text-right truncate hidden sm:block">{email}</span>
         ) : (
-          <div className="text-right">
-            <button onClick={() => { setShowLogin(true); setAuthMode("login"); }} className="text-xs text-foreground/60 hover:text-foreground cursor-pointer font-medium">sign in</button>
-            <span className="text-foreground/30 mx-1 text-xs">or</span>
-            <button onClick={() => { setShowLogin(true); setAuthMode("signup"); }} className="text-xs text-foreground/60 hover:text-foreground cursor-pointer font-medium">sign up</button>
+          <div className="text-right shrink-0">
+            <button onClick={() => { setShowLogin(true); setAuthMode("login"); }} className="text-[11px] sm:text-xs text-foreground/60 hover:text-foreground cursor-pointer font-medium">sign in</button>
+            <span className="text-foreground/30 mx-0.5 sm:mx-1 text-[11px] sm:text-xs">or</span>
+            <button onClick={() => { setShowLogin(true); setAuthMode("signup"); }} className="text-[11px] sm:text-xs text-foreground/60 hover:text-foreground cursor-pointer font-medium">sign up</button>
           </div>
         )}
       </div>
 
       {/* Mode switcher dropdown */}
       {showModeSwitcher && (
-        <div className="absolute top-12 left-1/2 -translate-x-1/2 z-50 bg-white border border-border rounded-2xl shadow-lg p-2 w-56">
+        <div className="absolute top-11 sm:top-12 left-1/2 -translate-x-1/2 z-50 bg-white border border-border rounded-2xl shadow-lg p-2 w-56">
           {MODES.filter(m => m.id !== activeMode).map(mode => {
             const Character = CHARACTER_MAP[mode.id];
             return (
@@ -1346,8 +1356,8 @@ export default function Home() {
         </div>
       )}
 
-      {/* Icon guide */}
-      {showIconGuide && (
+      {/* Icon guide — desktop only */}
+      {showIconGuide && !isMobile && (
         <div className="border-b border-border bg-white/60 px-4 py-2.5">
           <div className="max-w-2xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-5 text-[11px] text-foreground/50">
@@ -1382,28 +1392,28 @@ export default function Home() {
 
       {/* Login modal */}
       {showLogin && !isLoggedIn && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 flex items-center justify-center p-4">
-          <div className="relative bg-white rounded-2xl p-8 w-full max-w-sm shadow-md border border-border">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 flex items-end sm:items-center justify-center sm:p-4">
+          <div className="relative bg-white rounded-t-2xl sm:rounded-2xl p-6 sm:p-8 w-full sm:max-w-sm shadow-md border border-border pb-[max(1.5rem,env(safe-area-inset-bottom))]">
             <h3 className="text-lg font-semibold mb-1">{authMode === "login" ? "Welcome back" : "Create account"}</h3>
-            <p className="text-sm text-muted mb-6">We never save what you say &mdash; just how often you torch it, and where.</p>
-            {authError && <p className="text-sm text-bull mb-4">{authError}</p>}
+            <p className="text-xs sm:text-sm text-muted mb-4 sm:mb-6">We never save what you say &mdash; just how often you torch it, and where.</p>
+            {authError && <p className="text-sm text-bull mb-3">{authError}</p>}
             {authMode === "signup" && (
-              <div className="flex gap-2 mb-3">
+              <div className="flex gap-2 mb-2.5 sm:mb-3">
                 <input type="text" placeholder="first name" value={firstName} onChange={(e) => setFirstName(e.target.value)}
-                  className="flex-1 bg-background border border-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-muted" />
+                  className="flex-1 bg-background border border-border rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 text-sm focus:outline-none focus:border-muted" />
                 <input type="text" placeholder="last name" value={lastName} onChange={(e) => setLastName(e.target.value)}
-                  className="flex-1 bg-background border border-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-muted" />
+                  className="flex-1 bg-background border border-border rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 text-sm focus:outline-none focus:border-muted" />
               </div>
             )}
             <input type="email" placeholder="email" value={email} onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-background border border-border rounded-lg px-4 py-3 mb-3 text-sm focus:outline-none focus:border-muted" />
+              className="w-full bg-background border border-border rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 mb-2.5 sm:mb-3 text-sm focus:outline-none focus:border-muted" />
             <input type="password" placeholder="password" value={password} onChange={(e) => setPassword(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAuth()}
-              className="w-full bg-background border border-border rounded-lg px-4 py-3 mb-4 text-sm focus:outline-none focus:border-muted" />
-            <button onClick={handleAuth} className="w-full bg-foreground text-white rounded-lg py-3 text-sm font-medium hover:opacity-90 cursor-pointer">
+              className="w-full bg-background border border-border rounded-lg px-3 sm:px-4 py-2.5 sm:py-3 mb-3 sm:mb-4 text-sm focus:outline-none focus:border-muted" />
+            <button onClick={handleAuth} className="w-full bg-foreground text-white rounded-lg py-2.5 sm:py-3 text-sm font-medium hover:opacity-90 cursor-pointer">
               {authMode === "login" ? "Sign in" : "Create account"}
             </button>
-            <p className="text-sm text-muted text-center mt-4">
+            <p className="text-xs sm:text-sm text-muted text-center mt-3 sm:mt-4">
               {authMode === "login"
                 ? <>No account? <button onClick={() => { setAuthMode("signup"); setAuthError(""); }} className="text-foreground hover:underline cursor-pointer">Sign up</button></>
                 : <>Have an account? <button onClick={() => { setAuthMode("login"); setAuthError(""); }} className="text-foreground hover:underline cursor-pointer">Sign in</button></>}
@@ -1415,10 +1425,10 @@ export default function Home() {
 
       {/* Topic selector — hidden for riff mode */}
       {topic && activeMode !== "riff" && (
-        <div className="border-b border-border bg-white/40 px-3 sm:px-4 py-2">
+        <div className="border-b border-border bg-white/40 px-2 sm:px-4 py-1.5 sm:py-2">
           <div className="max-w-2xl mx-auto flex items-center gap-2">
             <span className="text-[11px] text-foreground/40 shrink-0 hidden sm:inline">dumping about</span>
-            <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
+            <div className="flex gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar">
               {TOPICS.map(t => (
                 <button key={t.id}
                   onClick={() => {
@@ -1426,7 +1436,7 @@ export default function Home() {
                     if (messages.length > 0) setMessages(prev => [...prev, { role: "divider" as const, content: t.label! }]);
                     setTopic(t.id);
                   }}
-                  className="text-[11px] px-2.5 py-1 rounded-full cursor-pointer transition-all font-medium shrink-0"
+                  className="text-[10px] sm:text-[11px] px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full cursor-pointer transition-all font-medium shrink-0"
                   style={topic === t.id ? { background: currentMode?.color, color: "#fff" } : { background: "transparent", border: "1px solid var(--color-border)", color: darkMode ? "#aaa" : "#888" }}
                 >{t.label}</button>
               ))}
@@ -1437,7 +1447,7 @@ export default function Home() {
 
       {/* Mood check-in (before chatting) — hidden for riff mode */}
       {isLoggedIn && messages.length === 0 && moodBefore === null && topic && activeMode !== "riff" && (
-        <div className="border-b border-border bg-white/40 px-4 py-4">
+        <div className="border-b border-border bg-white/40 px-3 sm:px-4 py-2.5 sm:py-4">
           <div className="max-w-md mx-auto">
             <MoodPicker value={moodBefore} onChange={(v) => setMoodBefore(v)} label="How are you feeling right now?" />
           </div>
@@ -1447,13 +1457,13 @@ export default function Home() {
       <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 sm:py-6" onClick={() => showModeSwitcher && setShowModeSwitcher(false)}>
         <div className="max-w-2xl mx-auto space-y-3 sm:space-y-4">
           {messages.length === 0 && (
-            <div className="text-center py-6 sm:py-10">
-              {CurrentCharacter && <div className="flex justify-center mb-3 sm:mb-4"><CurrentCharacter size={isMobile ? 56 : 72} /></div>}
-              <p className="text-lg font-semibold mb-1" style={{ color: currentMode?.color }}>{currentMode?.label}</p>
-              <p className="text-sm text-muted mb-4 sm:mb-6">{activeMode === "silence" ? "Type whatever you need to. No one's listening." : activeMode === "riff" ? "Hang tight, cooking up a prompt..." : "Start typing, or pick one."}</p>
+            <div className="text-center py-4 sm:py-10">
+              {CurrentCharacter && <div className="flex justify-center mb-2 sm:mb-4"><CurrentCharacter size={isMobile ? 44 : 72} /></div>}
+              <p className="text-base sm:text-lg font-semibold mb-0.5 sm:mb-1" style={{ color: currentMode?.color }}>{currentMode?.label}</p>
+              <p className="text-xs sm:text-sm text-muted mb-3 sm:mb-6">{activeMode === "silence" ? "Type whatever you need to. No one's listening." : activeMode === "riff" ? "Hang tight, cooking up a prompt..." : "Start typing, or pick one."}</p>
 
               {topic && activeMode !== "riff" && QUICK_SCENARIOS[topic] && (
-                <div className="flex flex-wrap justify-center gap-2 max-w-md mx-auto">
+                <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2 max-w-md mx-auto px-2">
                   {QUICK_SCENARIOS[topic].map((scenario) => (
                     <button
                       key={scenario}
@@ -1468,14 +1478,14 @@ export default function Home() {
                           fetchResponse(newMessages, activeMode!);
                         }, 0);
                       }}
-                      className="text-xs px-3 py-2 rounded-full bg-white border border-border hover:border-muted/50 hover:shadow-sm cursor-pointer transition-all text-foreground/60 hover:text-foreground"
+                      className="text-[11px] sm:text-xs px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full bg-white border border-border hover:border-muted/50 hover:shadow-sm cursor-pointer transition-all text-foreground/60 hover:text-foreground"
                     >{scenario}</button>
                   ))}
                 </div>
               )}
 
               {!topic && activeMode !== "silence" && activeMode !== "riff" && (
-                <p className="text-xs text-muted/50 mt-2">pick a topic below for quick starts</p>
+                <p className="text-[11px] sm:text-xs text-muted/50 mt-2">pick a topic below to get started</p>
               )}
             </div>
           )}
@@ -1719,16 +1729,16 @@ export default function Home() {
         </div>
       )}
 
-      <div className="border-t border-border bg-white/80 backdrop-blur-sm p-3 sm:p-4">
-        <p className="max-w-2xl mx-auto text-[11px] text-muted/50 mb-2">auto-deletes in 24 hours</p>
-        <div className="max-w-2xl mx-auto flex items-end bg-white border border-border rounded-2xl overflow-hidden" style={{ minHeight: "48px" }}>
+      <div className={`border-t border-border bg-white/80 backdrop-blur-sm px-2 sm:px-4 pt-2 sm:pt-3 ${isMobile && isLoggedIn ? "pb-1" : "pb-2 sm:pb-4"}`}>
+        <p className="max-w-2xl mx-auto text-[10px] sm:text-[11px] text-muted/50 mb-1 sm:mb-2 px-1">auto-deletes in 24 hours</p>
+        <div className="max-w-2xl mx-auto flex items-end bg-white border border-border rounded-xl sm:rounded-2xl overflow-hidden" style={{ minHeight: isMobile ? "42px" : "48px" }}>
           {!topic && activeMode !== "riff" ? (
-            <div className="flex-1 px-3 sm:px-4 py-3">
-              <p className="text-[12px] text-foreground/40 mb-2">what are you dumping about?</p>
-              <div className="flex gap-1.5 flex-wrap">
+            <div className="flex-1 px-3 py-2 sm:py-3">
+              <p className="text-[11px] sm:text-[12px] text-foreground/40 mb-1.5 sm:mb-2">what are you dumping about?</p>
+              <div className="flex gap-1 sm:gap-1.5 flex-wrap">
                 {TOPICS.map(t => (
                   <button key={t.id} onClick={() => setTopic(t.id)}
-                    className="text-[11px] px-2.5 py-1.5 rounded-full cursor-pointer transition-all font-medium hover:shadow-sm active:scale-95"
+                    className="text-[10px] sm:text-[11px] px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full cursor-pointer transition-all font-medium hover:shadow-sm active:scale-95"
                     style={{ background: "transparent", border: "1px solid var(--color-border)", color: darkMode ? "#aaa" : "#888" }}
                   >{t.label}</button>
                 ))}
@@ -1739,8 +1749,8 @@ export default function Home() {
             ref={inputRef} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown}
             placeholder={activeMode === "silence" ? "Let it out..." : "What's on your mind?"}
             rows={1}
-            className="flex-1 bg-transparent px-4 py-3 text-sm resize-none focus:outline-none placeholder:text-muted/50 border-none"
-            style={{ minHeight: "48px", maxHeight: "120px", color: inkMode ? "transparent" : undefined, caretColor: inkMode ? "#5b8a72" : undefined, textShadow: inkMode ? "0 0 8px rgba(0,0,0,0.25)" : undefined }}
+            className="flex-1 bg-transparent px-3 sm:px-4 py-2.5 sm:py-3 text-sm resize-none focus:outline-none placeholder:text-muted/50 border-none"
+            style={{ minHeight: isMobile ? "42px" : "48px", maxHeight: "120px", color: inkMode ? "transparent" : undefined, caretColor: inkMode ? "#5b8a72" : undefined, textShadow: inkMode ? "0 0 8px rgba(0,0,0,0.25)" : undefined }}
             onInput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 120) + "px"; }}
           />
           )}
@@ -1769,11 +1779,11 @@ export default function Home() {
               }
               setInkMode(!inkMode);
             }}
-            className="shrink-0 h-10 w-10 mb-1 flex items-center justify-center transition-all cursor-pointer group rounded-xl"
+            className="shrink-0 h-8 w-8 sm:h-10 sm:w-10 mb-0.5 sm:mb-1 flex items-center justify-center transition-all cursor-pointer group rounded-lg sm:rounded-xl"
             style={{ background: inkMode ? "#5b8a72" : "transparent" }}
             title={inkMode ? "Invisible ink on" : "Invisible ink off"}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="group-hover:scale-110 transition-transform">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="sm:w-[18px] sm:h-[18px] group-hover:scale-110 transition-transform">
               {inkMode ? (
                 <>
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" stroke="#fff" strokeWidth="2" fill="none"/>
@@ -1791,11 +1801,11 @@ export default function Home() {
           {/* Dispose button */}
           <button
             onClick={() => messages.length > 0 ? setShowDisposalPicker(true) : null}
-            className="shrink-0 h-10 w-10 mb-1 flex items-center justify-center transition-all cursor-pointer group"
+            className="shrink-0 h-8 w-8 sm:h-10 sm:w-10 mb-0.5 sm:mb-1 flex items-center justify-center transition-all cursor-pointer group"
             style={{ opacity: messages.length > 0 ? 1 : 0.35 }}
             title="Get rid of it"
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="group-hover:scale-115 transition-transform">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="sm:w-[22px] sm:h-[22px] group-hover:scale-115 transition-transform">
               <path d="M12 2C8 6 6 9 6 12.5C6 16 8.7 19 12 19C15.3 19 18 16 18 12.5C18 9 16 6 12 2Z" fill="#e25a3e" stroke="#cc4444" strokeWidth="1.5"/>
               <path d="M12 9C10.5 11 10 12.5 10 13.5C10 15 10.9 16 12 16C13.1 16 14 15 14 13.5C14 12.5 13.5 11 12 9Z" fill="#f5b731" stroke="#e09a28" strokeWidth="1"/>
             </svg>
@@ -1803,7 +1813,7 @@ export default function Home() {
           {/* Send button */}
           <button
             onClick={sendMessage} disabled={!input.trim() || isLoading}
-            className="shrink-0 h-10 w-10 mb-1 mr-1 flex items-center justify-center transition-all disabled:opacity-25 cursor-pointer disabled:cursor-not-allowed"
+            className="shrink-0 h-8 w-8 sm:h-10 sm:w-10 mb-0.5 sm:mb-1 mr-0.5 sm:mr-1 flex items-center justify-center transition-all disabled:opacity-25 cursor-pointer disabled:cursor-not-allowed"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
               stroke={input.trim() ? currentMode?.color : "#ccc"}>
