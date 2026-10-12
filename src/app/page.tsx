@@ -452,7 +452,7 @@ export default function Home() {
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
   const [lockCountdown, setLockCountdown] = useState("");
   const messageTimes = useRef<number[]>([]);
-  const [mobileTab, setMobileTab] = useState<"chats" | "profile">("chats");
+  const [mobileTab, setMobileTab] = useState<"chats" | "air" | "profile">("chats");
   const [isMobile, setIsMobile] = useState(false);
 
   // New feature states
@@ -477,6 +477,13 @@ export default function Home() {
   const [flightPos, setFlightPos] = useState<{ x: number; y: number } | null>(null);
   const touchRef = useRef<{ startX: number; startY: number; startTime: number; lastX: number; lastY: number; lastTime: number } | null>(null);
   const animFrameRef = useRef<number | null>(null);
+
+  // Air It Out feed
+  interface AiredPost { id: string; anonName: string; topic: string; mode: string; messages: { role: string; content: string }[]; timestamp: number; }
+  const [airFeed, setAirFeed] = useState<AiredPost[]>([]);
+  const [airLoading, setAirLoading] = useState(false);
+  const [airFilter, setAirFilter] = useState<string | null>(null);
+  const [airPosting, setAirPosting] = useState(false);
 
   const playSfx = useCallback((type: "send" | "torch" | "lock" | "unlock" | "achieve") => {
     if (soundEnabled) playSound(type);
@@ -944,6 +951,43 @@ export default function Home() {
   const currentMode = MODES.find((m) => m.id === activeMode);
   const CurrentCharacter = activeMode ? CHARACTER_MAP[activeMode] : null;
 
+  /* ─── AIR IT OUT ─── */
+  const fetchAirFeed = useCallback(async (topicFilter?: string | null) => {
+    setAirLoading(true);
+    try {
+      const url = topicFilter ? `/api/air?topic=${topicFilter}` : "/api/air";
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        setAirFeed(data.posts || []);
+      }
+    } catch {} finally { setAirLoading(false); }
+  }, []);
+
+  const airItOut = async () => {
+    if (!email || !activeMode || messages.length === 0 || airPosting) return;
+    setAirPosting(true);
+    try {
+      const res = await fetch("/api/air", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, topic, mode: activeMode, messages }),
+      });
+      if (res.ok) {
+        clearMessages();
+        setActiveMode(null);
+        setMobileTab("air");
+        fetchAirFeed();
+      }
+    } catch {} finally { setAirPosting(false); }
+  };
+
+  useEffect(() => {
+    if (mobileTab === "air" || (!isMobile && activeMode === null)) {
+      fetchAirFeed(airFilter);
+    }
+  }, [mobileTab, airFilter, fetchAirFeed, isMobile, activeMode]);
+
   /* ─── MOOD CHECK-IN ─── */
   const MoodPicker = ({ value, onChange, label }: { value: number | null; onChange: (v: number) => void; label: string }) => (
     <div className="text-center">
@@ -1141,6 +1185,88 @@ export default function Home() {
     );
   };
 
+  /* ─── AIR IT OUT FEED VIEW ─── */
+  const AirFeedView = () => (
+    <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 pb-24">
+      <div className="max-w-lg mx-auto">
+        <div className="text-center mb-4">
+          <p className="text-lg font-bold text-foreground">Air It Out</p>
+          <p className="text-xs text-foreground/40">Anonymous vents from the community. Auto-deletes in 24h.</p>
+        </div>
+
+        {/* Topic filter */}
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar mb-4 pb-1">
+          <button
+            onClick={() => setAirFilter(null)}
+            className="text-[11px] px-2.5 py-1 rounded-full cursor-pointer font-medium shrink-0 transition-all"
+            style={!airFilter ? { background: darkMode ? "#555" : "#333", color: "#fff" } : { border: "1px solid var(--color-border)", color: darkMode ? "#aaa" : "#888" }}
+          >All</button>
+          {TOPICS.map(t => (
+            <button key={t.id}
+              onClick={() => setAirFilter(airFilter === t.id ? null : t.id)}
+              className="text-[11px] px-2.5 py-1 rounded-full cursor-pointer font-medium shrink-0 transition-all"
+              style={airFilter === t.id ? { background: darkMode ? "#555" : "#333", color: "#fff" } : { border: "1px solid var(--color-border)", color: darkMode ? "#aaa" : "#888" }}
+            >{t.label}</button>
+          ))}
+        </div>
+
+        {airLoading && (
+          <div className="text-center py-10">
+            <p className="text-sm text-foreground/40">Loading...</p>
+          </div>
+        )}
+
+        {!airLoading && airFeed.length === 0 && (
+          <div className="text-center py-10">
+            <p className="text-2xl mb-2">&#x1F32C;&#xFE0F;</p>
+            <p className="text-sm text-foreground/50">Nothing aired yet.</p>
+            <p className="text-xs text-foreground/30 mt-1">Start a chat, then air it out for the world to see.</p>
+          </div>
+        )}
+
+        <div className="space-y-3">
+          {airFeed.map(post => {
+            const postMode = MODES.find(m => m.id === post.mode);
+            const PostChar = CHARACTER_MAP[post.mode as Mode];
+            return (
+              <div key={post.id} className="bg-white border border-border rounded-xl p-4">
+                {/* Post header */}
+                <div className="flex items-center gap-2 mb-3">
+                  {PostChar && <PostChar size={20} />}
+                  <span className="text-xs font-bold" style={{ color: postMode?.color }}>{postMode?.label}</span>
+                  <span className="text-[10px] text-foreground/30">&#x2022;</span>
+                  <span className="text-[10px] text-foreground/40 capitalize">{post.topic}</span>
+                  <span className="ml-auto text-[10px] text-foreground/30">{post.anonName}</span>
+                </div>
+                {/* Messages */}
+                <div className="space-y-2">
+                  {post.messages.slice(0, 6).map((msg, i) => (
+                    <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                      <div
+                        className="max-w-[85%] rounded-2xl px-3 py-2 text-xs leading-relaxed"
+                        style={msg.role === "user"
+                          ? { background: darkMode ? "#3a3530" : "#ede8df", color: darkMode ? "#e0ddd8" : "#333" }
+                          : { background: darkMode ? "var(--color-surface)" : "#f8f6f2", color: darkMode ? "#e0ddd8" : "#555" }
+                        }
+                      >{msg.content}</div>
+                    </div>
+                  ))}
+                  {post.messages.length > 6 && (
+                    <p className="text-[10px] text-foreground/30 text-center">+{post.messages.length - 6} more messages</p>
+                  )}
+                </div>
+                {/* Timestamp */}
+                <p className="text-[10px] text-foreground/25 mt-2">
+                  {new Date(post.timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+
   /* ─── MOBILE BOTTOM NAV ─── */
   const MobileNav = () => (
     <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-border z-50 sm:hidden">
@@ -1150,6 +1276,12 @@ export default function Home() {
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
           </svg>
           <span className="text-[10px] font-medium" style={{ color: mobileTab === "chats" && !activeMode ? (darkMode ? "#e0ddd8" : "#333") : "#aaa" }}>Chats</span>
+        </button>
+        <button onClick={() => { setMobileTab("air"); setActiveMode(null); }} className="flex flex-col items-center gap-0.5 px-6 py-1 cursor-pointer">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={mobileTab === "air" ? (darkMode ? "#e0ddd8" : "#333") : "#aaa"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/>
+          </svg>
+          <span className="text-[10px] font-medium" style={{ color: mobileTab === "air" ? (darkMode ? "#e0ddd8" : "#333") : "#aaa" }}>Air</span>
         </button>
         <button onClick={() => { setMobileTab("profile"); setActiveMode(null); }} className="flex flex-col items-center gap-0.5 px-6 py-1 cursor-pointer">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={mobileTab === "profile" ? (darkMode ? "#e0ddd8" : "#333") : "#aaa"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1184,6 +1316,20 @@ export default function Home() {
 
   /* ─── LANDING ─── */
   if (!activeMode) {
+    // Mobile air tab
+    if (isMobile && isLoggedIn && mobileTab === "air") {
+      return (
+        <div className="min-h-screen flex flex-col">
+          <div className="px-4 py-3 border-b border-border bg-white/80 backdrop-blur-sm" style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}>
+            <h2 className="text-lg font-bold text-center">Air It Out</h2>
+          </div>
+          <AirFeedView />
+          <MobileNav />
+          <AchievementToast />
+        </div>
+      );
+    }
+
     // Mobile profile tab
     if (isMobile && isLoggedIn && mobileTab === "profile") {
       return (
@@ -1370,6 +1516,13 @@ export default function Home() {
                 </div>
               );
             })()}
+
+            {/* Air It Out section (desktop) */}
+            {isLoggedIn && !isMobile && (
+              <div className="w-full mt-6">
+                <AirFeedView />
+              </div>
+            )}
 
             {/* Guest disclaimer (desktop) */}
             {!isLoggedIn && !isMobile && (
@@ -1698,6 +1851,15 @@ export default function Home() {
                 </button>
               ))}
             </div>
+            {isLoggedIn && (
+              <button onClick={() => { setShowDisposalPicker(false); airItOut(); }}
+                disabled={airPosting}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer hover:bg-background transition-colors active:scale-[0.98] text-left border-t border-border mt-1 pt-3">
+                <span className="text-xl">&#x1F4E2;</span>
+                <span className="text-sm font-medium text-foreground/80">{airPosting ? "Posting..." : "Air it out"}</span>
+                <span className="ml-auto text-[10px] text-foreground/30">post anonymously</span>
+              </button>
+            )}
             <button onClick={() => setShowDisposalPicker(false)} className="w-full py-2 text-sm text-muted hover:text-foreground cursor-pointer">Never mind</button>
           </div>
         </div>
