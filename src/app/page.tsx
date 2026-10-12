@@ -493,16 +493,20 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeMode]);
 
-  // iOS keyboard: resize layout and keep chat scrolled
+  // iOS keyboard: detect open/close to hide nav and scroll chat
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
   useEffect(() => {
     if (typeof window === "undefined" || !window.visualViewport) return;
     const vv = window.visualViewport;
+    const initialHeight = vv.height;
     const onResize = () => {
-      document.documentElement.style.setProperty("--vvh", `${vv.height}px`);
-      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+      const isOpen = vv.height < initialHeight * 0.75;
+      setKeyboardOpen(isOpen);
+      if (isOpen) {
+        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+      }
     };
     vv.addEventListener("resize", onResize);
-    onResize();
     return () => vv.removeEventListener("resize", onResize);
   }, []);
 
@@ -1811,7 +1815,7 @@ export default function Home() {
         </div>
       )}
 
-      <div className={`border-t border-border bg-white/80 backdrop-blur-sm px-2 sm:px-4 pt-2 sm:pt-3 ${isMobile && isLoggedIn ? "pb-14" : isMobile ? "pb-2" : "pb-2 sm:pb-4"}`}>
+      <div className={`border-t border-border bg-white/80 backdrop-blur-sm px-2 sm:px-4 pt-2 sm:pt-3 ${isMobile && isLoggedIn && !keyboardOpen ? "pb-14" : isMobile ? "pb-2" : "pb-2 sm:pb-4"}`}>
         <p className="max-w-2xl mx-auto text-[10px] sm:text-[11px] text-muted/50 mb-1 sm:mb-2 px-1">auto-deletes in 24 hours</p>
         <div className="max-w-2xl mx-auto flex items-end bg-white border border-border rounded-xl sm:rounded-2xl overflow-hidden" style={{ minHeight: isMobile ? "42px" : "48px" }}>
           {!topic && activeMode !== "riff" ? (
@@ -1906,7 +1910,7 @@ export default function Home() {
           </>)}
         </div>
       </div>
-      {isMobile && isLoggedIn && <MobileNav />}
+      {isMobile && isLoggedIn && !keyboardOpen && <MobileNav />}
       <AchievementToast />
     </div>
   );
