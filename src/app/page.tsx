@@ -1369,20 +1369,18 @@ export default function Home() {
 
       {/* Mode switcher dropdown */}
       {showModeSwitcher && (
-        <div className="absolute top-11 sm:top-12 left-1/2 -translate-x-1/2 z-50 bg-white border border-border rounded-2xl shadow-lg p-2 w-56">
+        <div className="absolute top-11 sm:top-12 left-1/2 -translate-x-1/2 z-50 bg-white border border-border rounded-2xl shadow-lg p-2 w-64">
           {MODES.filter(m => m.id !== activeMode).map(mode => {
             const Character = CHARACTER_MAP[mode.id];
             return (
               <button
                 key={mode.id}
                 onClick={() => switchMode(mode.id)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-background cursor-pointer transition-colors"
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-background cursor-pointer transition-colors whitespace-nowrap"
               >
                 <Character size={24} />
-                <div>
-                  <span className="text-sm font-medium" style={{ color: mode.color }}>{mode.label}</span>
-                  <span className="text-[11px] text-foreground/40 ml-2">{mode.tagline}</span>
-                </div>
+                <span className="text-sm font-medium shrink-0" style={{ color: mode.color }}>{mode.label}</span>
+                <span className="text-[11px] text-foreground/40 truncate">{mode.tagline}</span>
               </button>
             );
           })}
