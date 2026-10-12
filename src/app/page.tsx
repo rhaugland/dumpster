@@ -1111,7 +1111,7 @@ export default function Home() {
     if (isMobile && isLoggedIn && mobileTab === "profile") {
       return (
         <div className="min-h-screen flex flex-col">
-          <div className="px-4 py-3 border-b border-border bg-white/80 backdrop-blur-sm">
+          <div className="px-4 py-3 border-b border-border bg-white/80 backdrop-blur-sm" style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}>
             <h2 className="text-lg font-bold text-center">Profile</h2>
           </div>
           <ProfileView />
@@ -1216,7 +1216,7 @@ export default function Home() {
         )}
 
         {/* Hero */}
-        <div className={`flex-1 overflow-y-auto px-4 sm:px-6 pt-6 sm:pt-10 ${isMobile && isLoggedIn ? "pb-20" : "pb-6"}`}>
+        <div className={`flex-1 overflow-y-auto px-4 sm:px-6 sm:pt-10 ${isMobile && isLoggedIn ? "pb-20" : "pb-6"}`} style={{ paddingTop: isMobile ? "max(1rem, env(safe-area-inset-top))" : undefined }}>
           <div className="max-w-lg mx-auto flex flex-col items-center">
             <DumpsterLogo size={isMobile ? 56 : 80} />
             <h1 className="text-3xl sm:text-5xl font-black tracking-tight mt-2 sm:mt-3 mb-1 sm:mb-2 text-foreground">Dumpster</h1>
@@ -1318,7 +1318,7 @@ export default function Home() {
   /* ─── CHAT ─── */
   return (
     <div className="h-dvh flex flex-col relative">
-      <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-b border-border bg-white/80 backdrop-blur-sm">
+      <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-b border-border bg-white/80 backdrop-blur-sm" style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}>
         <button onClick={() => { if (!isLoggedIn) setMessages([]); setActiveMode(null); }}
           className="text-sm text-muted hover:text-foreground cursor-pointer flex items-center gap-1 font-medium shrink-0">
           <span>&larr;</span> <span className="hidden sm:inline">back</span>
