@@ -40,6 +40,11 @@ html.dark .bg-background { background: var(--color-background) !important; }
 html.dark .border-border { border-color: var(--color-border) !important; }
 html.dark .text-foreground { color: var(--color-foreground) !important; }
 html.dark input, html.dark textarea { background: var(--color-background) !important; color: var(--color-foreground) !important; border-color: var(--color-border) !important; }
+
+/* Prevent iOS auto-zoom on input focus */
+@media screen and (max-width: 639px) {
+  input, textarea, select { font-size: 16px !important; }
+}
 html.dark .text-foreground\/60 { color: rgba(224,221,216,0.75) !important; }
 html.dark .text-foreground\/40 { color: rgba(224,221,216,0.55) !important; }
 html.dark .text-foreground\/50 { color: rgba(224,221,216,0.65) !important; }
