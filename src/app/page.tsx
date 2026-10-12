@@ -1729,7 +1729,7 @@ export default function Home() {
         </div>
       )}
 
-      <div className={`border-t border-border bg-white/80 backdrop-blur-sm px-2 sm:px-4 pt-2 sm:pt-3 ${isMobile && isLoggedIn ? "pb-1" : "pb-2 sm:pb-4"}`}>
+      <div className={`border-t border-border bg-white/80 backdrop-blur-sm px-2 sm:px-4 pt-2 sm:pt-3 ${isMobile && isLoggedIn ? "pb-14" : isMobile ? "pb-2" : "pb-2 sm:pb-4"}`}>
         <p className="max-w-2xl mx-auto text-[10px] sm:text-[11px] text-muted/50 mb-1 sm:mb-2 px-1">auto-deletes in 24 hours</p>
         <div className="max-w-2xl mx-auto flex items-end bg-white border border-border rounded-xl sm:rounded-2xl overflow-hidden" style={{ minHeight: isMobile ? "42px" : "48px" }}>
           {!topic && activeMode !== "riff" ? (

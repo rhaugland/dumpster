@@ -40,6 +40,14 @@ html.dark .bg-background { background: var(--color-background) !important; }
 html.dark .border-border { border-color: var(--color-border) !important; }
 html.dark .text-foreground { color: var(--color-foreground) !important; }
 html.dark input, html.dark textarea { background: var(--color-background) !important; color: var(--color-foreground) !important; border-color: var(--color-border) !important; }
+html.dark .text-foreground\/60 { color: rgba(224,221,216,0.75) !important; }
+html.dark .text-foreground\/40 { color: rgba(224,221,216,0.55) !important; }
+html.dark .text-foreground\/50 { color: rgba(224,221,216,0.65) !important; }
+html.dark .text-foreground\/30 { color: rgba(224,221,216,0.4) !important; }
+html.dark .text-muted { color: #999 !important; }
+html.dark .text-muted\/50 { color: rgba(153,153,153,0.7) !important; }
+html.dark .text-muted\/40 { color: rgba(153,153,153,0.6) !important; }
+html.dark .hover\:shadow-md:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important; }
 
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
