@@ -21,6 +21,10 @@ body {
   color: var(--color-foreground);
 }
 
+/* Use dynamic viewport height so layout adjusts when iOS keyboard opens */
+.h-dvh { height: var(--vvh, 100dvh); }
+@supports not (height: 100dvh) { .h-dvh { height: var(--vvh, 100vh); } }
+
 /* Dark mode overrides */
 html.dark {
   --color-background: #1a1a1f;

@@ -489,6 +489,19 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeMode]);
 
+  // iOS keyboard: resize layout and keep chat scrolled
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+    const vv = window.visualViewport;
+    const onResize = () => {
+      document.documentElement.style.setProperty("--vvh", `${vv.height}px`);
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+    };
+    vv.addEventListener("resize", onResize);
+    onResize();
+    return () => vv.removeEventListener("resize", onResize);
+  }, []);
+
   // Mobile detection
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 640);
@@ -1311,7 +1324,7 @@ export default function Home() {
 
   /* ─── CHAT ─── */
   return (
-    <div className="h-screen flex flex-col relative">
+    <div className="h-dvh flex flex-col relative">
       <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-b border-border bg-white/80 backdrop-blur-sm">
         <button onClick={() => { if (!isLoggedIn) setMessages([]); setActiveMode(null); }}
           className="text-sm text-muted hover:text-foreground cursor-pointer flex items-center gap-1 font-medium shrink-0">
