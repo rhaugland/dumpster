@@ -464,6 +464,8 @@ export default function Home() {
   const [moodAfter, setMoodAfter] = useState<number | null>(null);
   const [pendingBurnEntry, setPendingBurnEntry] = useState<BurnEntry | null>(null);
   const [showModeSwitcher, setShowModeSwitcher] = useState(false);
+  const [showTopicDropdown, setShowTopicDropdown] = useState(false);
+  const [showMoodDropdown, setShowMoodDropdown] = useState(false);
   const [newAchievement, setNewAchievement] = useState<Achievement | null>(null);
 
   // Disposal system
@@ -1315,14 +1317,45 @@ export default function Home() {
           className="text-sm text-muted hover:text-foreground cursor-pointer flex items-center gap-1 font-medium shrink-0">
           <span>&larr;</span> <span className="hidden sm:inline">back</span>
         </button>
-        {/* Mode switcher */}
-        <button onClick={() => setShowModeSwitcher(!showModeSwitcher)} className="flex items-center gap-1.5 sm:gap-2 cursor-pointer group">
-          {CurrentCharacter && <CurrentCharacter size={isMobile ? 20 : 26} />}
-          <span className="font-bold text-sm" style={{ color: currentMode?.color }}>{currentMode?.label}</span>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={currentMode?.color} strokeWidth="2.5" strokeLinecap="round" className="group-hover:translate-y-0.5 transition-transform">
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </button>
+        {/* Center controls: mode + topic */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Mode switcher */}
+          <button onClick={() => { setShowModeSwitcher(!showModeSwitcher); setShowTopicDropdown(false); setShowMoodDropdown(false); }} className="flex items-center gap-1.5 cursor-pointer group">
+            {CurrentCharacter && <CurrentCharacter size={isMobile ? 20 : 26} />}
+            <span className="font-bold text-sm" style={{ color: currentMode?.color }}>{currentMode?.label}</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={currentMode?.color} strokeWidth="2.5" strokeLinecap="round" className="group-hover:translate-y-0.5 transition-transform">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+          {/* Topic dropdown trigger */}
+          {activeMode !== "riff" && activeMode !== "silence" && (
+            <>
+              <span className="text-foreground/20">|</span>
+              <button onClick={() => { setShowTopicDropdown(!showTopicDropdown); setShowModeSwitcher(false); setShowMoodDropdown(false); }} className="flex items-center gap-1 cursor-pointer group">
+                <span className="text-xs font-medium" style={{ color: topic ? currentMode?.color : darkMode ? "#888" : "#999" }}>
+                  {topic ? TOPICS.find(t => t.id === topic)?.label : "Topic"}
+                </span>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={topic ? currentMode?.color : "#999"} strokeWidth="2.5" strokeLinecap="round" className="group-hover:translate-y-0.5 transition-transform">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+            </>
+          )}
+          {/* Mood dropdown trigger */}
+          {isLoggedIn && activeMode !== "riff" && topic && (
+            <>
+              <span className="text-foreground/20">|</span>
+              <button onClick={() => { setShowMoodDropdown(!showMoodDropdown); setShowModeSwitcher(false); setShowTopicDropdown(false); }} className="flex items-center gap-1 cursor-pointer group">
+                <span className="text-xs" style={{ color: moodBefore ? currentMode?.color : darkMode ? "#888" : "#999" }}>
+                  {moodBefore ? [":(", ":/", ":|", ":)", ":D"][moodBefore - 1] : "Mood"}
+                </span>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={moodBefore ? currentMode?.color : "#999"} strokeWidth="2.5" strokeLinecap="round" className="group-hover:translate-y-0.5 transition-transform">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+            </>
+          )}
+        </div>
         {isLoggedIn ? (
           <span className="text-xs text-muted w-14 text-right truncate hidden sm:block">{email}</span>
         ) : (
@@ -1353,6 +1386,56 @@ export default function Home() {
               </button>
             );
           })}
+        </div>
+      )}
+
+      {/* Topic dropdown */}
+      {showTopicDropdown && (
+        <div className="absolute top-11 sm:top-12 left-1/2 -translate-x-1/2 z-50 bg-white border border-border rounded-2xl shadow-lg p-2 w-48">
+          {TOPICS.map(t => (
+            <button
+              key={t.id}
+              onClick={() => {
+                if (topic && topic !== t.id && messages.length > 0) {
+                  setMessages(prev => [...prev, { role: "divider" as const, content: t.label! }]);
+                }
+                setTopic(t.id);
+                setShowTopicDropdown(false);
+              }}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-background cursor-pointer transition-colors"
+            >
+              <span className="text-sm" style={{ color: topic === t.id ? currentMode?.color : darkMode ? "#ccc" : "#555", fontWeight: topic === t.id ? 600 : 400 }}>{t.label}</span>
+              {topic === t.id && <span className="ml-auto text-xs" style={{ color: currentMode?.color }}>&#10003;</span>}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Mood dropdown */}
+      {showMoodDropdown && (
+        <div className="absolute top-11 sm:top-12 left-1/2 -translate-x-1/2 z-50 bg-white border border-border rounded-2xl shadow-lg p-3 w-56">
+          <p className="text-[11px] text-foreground/50 mb-2 text-center">Helps us match the right tone and energy to where you&apos;re at.</p>
+          <div className="flex justify-center gap-2">
+            {MOOD_FACES.map((face, i) => (
+              <button
+                key={i}
+                onClick={() => { setMoodBefore(i + 1); setShowMoodDropdown(false); }}
+                className="flex flex-col items-center gap-0.5 cursor-pointer transition-all"
+              >
+                <div
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-sm transition-all"
+                  style={{
+                    background: moodBefore === i + 1 ? currentMode?.color || "#666" : darkMode ? "#333" : "#f0ebe3",
+                    color: moodBefore === i + 1 ? "#fff" : darkMode ? "#aaa" : "#888",
+                    transform: moodBefore === i + 1 ? "scale(1.1)" : "scale(1)",
+                  }}
+                >
+                  {[":(", ":/", ":|", ":)", ":D"][i]}
+                </div>
+                <span className="text-[9px] text-foreground/40">{face}</span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -1423,38 +1506,9 @@ export default function Home() {
         </div>
       )}
 
-      {/* Topic selector — hidden for riff mode */}
-      {topic && activeMode !== "riff" && (
-        <div className="border-b border-border bg-white/40 px-2 sm:px-4 py-1.5 sm:py-2">
-          <div className="max-w-2xl mx-auto flex items-center gap-2">
-            <span className="text-[11px] text-foreground/40 shrink-0 hidden sm:inline">dumping about</span>
-            <div className="flex gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar">
-              {TOPICS.map(t => (
-                <button key={t.id}
-                  onClick={() => {
-                    if (topic === t.id) return;
-                    if (messages.length > 0) setMessages(prev => [...prev, { role: "divider" as const, content: t.label! }]);
-                    setTopic(t.id);
-                  }}
-                  className="text-[10px] sm:text-[11px] px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full cursor-pointer transition-all font-medium shrink-0"
-                  style={topic === t.id ? { background: currentMode?.color, color: "#fff" } : { background: "transparent", border: "1px solid var(--color-border)", color: darkMode ? "#aaa" : "#888" }}
-                >{t.label}</button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Topic and mood are now dropdowns in the header */}
 
-      {/* Mood check-in (before chatting) — hidden for riff mode */}
-      {isLoggedIn && messages.length === 0 && moodBefore === null && topic && activeMode !== "riff" && (
-        <div className="border-b border-border bg-white/40 px-3 sm:px-4 py-2.5 sm:py-4">
-          <div className="max-w-md mx-auto">
-            <MoodPicker value={moodBefore} onChange={(v) => setMoodBefore(v)} label="How are you feeling right now?" />
-          </div>
-        </div>
-      )}
-
-      <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 sm:py-6" onClick={() => showModeSwitcher && setShowModeSwitcher(false)}>
+      <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 sm:py-6" onClick={() => { setShowModeSwitcher(false); setShowTopicDropdown(false); setShowMoodDropdown(false); }}>
         <div className="max-w-2xl mx-auto space-y-3 sm:space-y-4">
           {messages.length === 0 && (
             <div className="text-center py-4 sm:py-10">
