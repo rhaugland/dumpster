@@ -472,7 +472,11 @@ export default function Home() {
   type DisposalMethod = "torch" | "crumple" | "swish" | "fieldgoal" | "shred";
   const [showDisposalPicker, setShowDisposalPicker] = useState(false);
   const [disposalMethod, setDisposalMethod] = useState<DisposalMethod | null>(null);
-  const [disposalPhase, setDisposalPhase] = useState<"crumpling" | "ready" | "launched" | "scored" | null>(null);
+  const [disposalPhase, setDisposalPhase] = useState<"crumpling" | "ready" | "launched" | "scored" | "missed" | null>(null);
+  const [ballPos, setBallPos] = useState<{ x: number; y: number } | null>(null);
+  const [flightPos, setFlightPos] = useState<{ x: number; y: number } | null>(null);
+  const touchRef = useRef<{ startX: number; startY: number; startTime: number; lastX: number; lastY: number; lastTime: number } | null>(null);
+  const animFrameRef = useRef<number | null>(null);
 
   const playSfx = useCallback((type: "send" | "torch" | "lock" | "unlock" | "achieve") => {
     if (soundEnabled) playSound(type);
@@ -786,19 +790,88 @@ export default function Home() {
     }
   };
 
-  const launchDisposal = () => {
+  const handleFlickStart = (e: React.TouchEvent | React.MouseEvent) => {
+    const pos = "touches" in e ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : { x: e.clientX, y: e.clientY };
+    touchRef.current = { startX: pos.x, startY: pos.y, startTime: Date.now(), lastX: pos.x, lastY: pos.y, lastTime: Date.now() };
+    setBallPos(pos);
+  };
+
+  const handleFlickMove = (e: React.TouchEvent | React.MouseEvent) => {
+    if (!touchRef.current) return;
+    const pos = "touches" in e ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : { x: e.clientX, y: e.clientY };
+    touchRef.current.lastX = pos.x;
+    touchRef.current.lastY = pos.y;
+    touchRef.current.lastTime = Date.now();
+    setBallPos(pos);
+  };
+
+  const handleFlickEnd = () => {
+    if (!touchRef.current) return;
+    const t = touchRef.current;
+    const dt = Math.max(t.lastTime - t.startTime, 16) / 1000;
+    const vx = (t.lastX - t.startX) / dt;
+    const vy = (t.lastY - t.startY) / dt;
+    const speed = Math.sqrt(vx * vx + vy * vy);
+
+    // Need minimum upward flick
+    if (vy > -200 || speed < 300) {
+      setBallPos(null);
+      touchRef.current = null;
+      return;
+    }
+
+    // Determine accuracy: how centered is the horizontal velocity?
+    const accuracy = Math.abs(vx) / Math.abs(vy);
+    const isHit = accuracy < 0.6 && speed > 400;
+
+    // Animate the flight
     setDisposalPhase("launched");
     playSfx("torch");
-    setTimeout(() => {
-      setDisposalPhase("scored");
-      playSfx("achieve");
-    }, 800);
-    setTimeout(() => {
-      clearMessages();
-      setDisposalMethod(null);
-      setDisposalPhase(null);
-    }, 2000);
+    const startX = t.lastX;
+    const startY = t.lastY;
+    const targetY = 120; // near top of screen
+    const startTime = performance.now();
+    const duration = 600;
+
+    const animate = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // Parabolic arc
+      const ease = progress;
+      const arcX = startX + vx * 0.15 * ease;
+      const arcY = startY + (targetY - startY) * ease - 200 * Math.sin(Math.PI * progress);
+      const scale = 1 - progress * 0.7;
+      setFlightPos({ x: arcX, y: arcY });
+      setBallPos(null);
+
+      if (progress < 1) {
+        animFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        setFlightPos(null);
+        if (isHit) {
+          setDisposalPhase("scored");
+          playSfx("achieve");
+          setTimeout(() => {
+            clearMessages();
+            setDisposalMethod(null);
+            setDisposalPhase(null);
+          }, 1500);
+        } else {
+          setDisposalPhase("missed");
+          setTimeout(() => {
+            setDisposalPhase("ready");
+          }, 1200);
+        }
+      }
+    };
+    animFrameRef.current = requestAnimationFrame(animate);
+    touchRef.current = null;
   };
+
+  // Cleanup animation frame on unmount
+  useEffect(() => {
+    return () => { if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current); };
+  }, []);
 
   const completeBurnWithMood = (afterMood: number | null) => {
     if (pendingBurnEntry && email) {
@@ -1603,51 +1676,21 @@ export default function Home() {
       {/* Disposal picker */}
       {showDisposalPicker && (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-md border border-border">
-            <p className="font-semibold text-foreground text-center mb-1">How do you want to get rid of it?</p>
+          <div className="bg-white rounded-2xl p-5 w-full max-w-xs shadow-md border border-border">
+            <p className="font-semibold text-foreground text-center mb-1">Get rid of it</p>
             <p className="text-xs text-muted text-center mb-4">Gone forever. No undo.</p>
-            <div className="grid grid-cols-5 gap-2 mb-4">
+            <div className="space-y-1.5 mb-4">
               {([
-                { id: "torch" as DisposalMethod, label: "Torch", icon: (
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 2C8 6 6 9 6 12.5C6 16 8.7 19 12 19C15.3 19 18 16 18 12.5C18 9 16 6 12 2Z" fill="#e25a3e" stroke="#cc4444" strokeWidth="1.5"/>
-                    <path d="M12 9C10.5 11 10 12.5 10 13.5C10 15 10.9 16 12 16C13.1 16 14 15 14 13.5C14 12.5 13.5 11 12 9Z" fill="#f5b731" stroke="#e09a28" strokeWidth="1"/>
-                  </svg>
-                )},
-                { id: "crumple" as DisposalMethod, label: "Toss", icon: (
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="1.5" strokeLinecap="round">
-                    <path d="M4 20h16M8 16h8v4H8zM12 12l-2 2M12 12l2 2M12 12V6M9 6h6" />
-                  </svg>
-                )},
-                { id: "swish" as DisposalMethod, label: "Swish", icon: (
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="8" stroke="#e07020" strokeWidth="1.5" fill="none"/>
-                    <path d="M7 12h10M12 7v10" stroke="#e07020" strokeWidth="1" />
-                    <path d="M8 8c2 1 4 1 6 0" stroke="#333" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
-                  </svg>
-                )},
-                { id: "fieldgoal" as DisposalMethod, label: "Kick", icon: (
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="1.5" strokeLinecap="round">
-                    <line x1="6" y1="4" x2="6" y2="20" />
-                    <line x1="18" y1="4" x2="18" y2="20" />
-                    <line x1="6" y1="6" x2="18" y2="6" />
-                    <path d="M12 18l-2-3h4l-2 3z" fill="#8B4513" stroke="none" />
-                  </svg>
-                )},
-                { id: "shred" as DisposalMethod, label: "Shred", icon: (
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="1.5" strokeLinecap="round">
-                    <rect x="5" y="3" width="14" height="8" rx="1" />
-                    <line x1="5" y1="11" x2="19" y2="11" />
-                    <line x1="8" y1="14" x2="8" y2="21" strokeDasharray="2 2" />
-                    <line x1="12" y1="14" x2="12" y2="21" strokeDasharray="2 2" />
-                    <line x1="16" y1="14" x2="16" y2="21" strokeDasharray="2 2" />
-                  </svg>
-                )},
+                { id: "torch" as DisposalMethod, label: "Burn it", emoji: "\uD83D\uDD25" },
+                { id: "crumple" as DisposalMethod, label: "Toss it", emoji: "\uD83D\uDDD1\uFE0F" },
+                { id: "swish" as DisposalMethod, label: "Shoot it", emoji: "\uD83C\uDFC0" },
+                { id: "fieldgoal" as DisposalMethod, label: "Kick it", emoji: "\uD83C\uDFC8" },
+                { id: "shred" as DisposalMethod, label: "Shred it", emoji: "\u2702\uFE0F" },
               ]).map(d => (
                 <button key={d.id} onClick={() => startDisposal(d.id)}
-                  className="flex flex-col items-center gap-1.5 py-3 rounded-xl cursor-pointer hover:bg-background transition-colors active:scale-95">
-                  {d.icon}
-                  <span className="text-[10px] font-medium text-foreground/60">{d.label}</span>
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer hover:bg-background transition-colors active:scale-[0.98] text-left">
+                  <span className="text-xl">{d.emoji}</span>
+                  <span className="text-sm font-medium text-foreground/80">{d.label}</span>
                 </button>
               ))}
             </div>
@@ -1656,96 +1699,77 @@ export default function Home() {
         </div>
       )}
 
-      {/* Interactive disposal overlay */}
+      {/* Interactive disposal overlay — flick game */}
       {disposalPhase && disposalMethod && disposalMethod !== "torch" && disposalMethod !== "shred" && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center" style={{ background: darkMode ? "rgba(26,26,31,0.95)" : "rgba(250,246,240,0.95)" }}>
-          {/* Target */}
-          <div className="mb-8">
-            {disposalMethod === "crumple" && (
-              <svg width="80" height="80" viewBox="0 0 100 100" fill="none">
-                <rect x="20" y="30" width="60" height="55" rx="4" fill={darkMode ? "#3a3a40" : "#d6d0c4"} stroke={darkMode ? "#555" : "#b0a898"} strokeWidth="3"/>
-                <rect x="17" y="25" width="66" height="10" rx="3" fill={darkMode ? "#444" : "#c0b8a8"} stroke={darkMode ? "#555" : "#b0a898"} strokeWidth="2"/>
-                {disposalPhase === "scored" && <text x="50" y="65" textAnchor="middle" fill={darkMode ? "#e0ddd8" : "#666"} fontSize="16" fontWeight="bold">IN!</text>}
-              </svg>
-            )}
-            {disposalMethod === "swish" && (
-              <svg width="100" height="80" viewBox="0 0 120 100" fill="none">
-                <rect x="45" y="10" width="30" height="4" rx="2" fill={darkMode ? "#666" : "#999"} />
-                <ellipse cx="60" cy="14" rx="22" ry="4" stroke="#e07020" strokeWidth="3" fill="none"/>
-                <path d="M42 18 L42 45 M78 18 L78 45" stroke="#eee" strokeWidth="1.5" strokeDasharray="3 4" />
-                {disposalPhase === "scored" && (
-                  <g style={{ animation: "netWobble 0.5s ease-out" }}>
-                    <path d="M42 18 Q48 30 42 45 M78 18 Q72 30 78 45 M42 28 Q60 35 78 28" stroke="#eee" strokeWidth="1" fill="none" />
-                  </g>
-                )}
-                {disposalPhase === "scored" && <text x="60" y="75" textAnchor="middle" fill="#e07020" fontSize="18" fontWeight="bold">SWISH!</text>}
-              </svg>
-            )}
-            {disposalMethod === "fieldgoal" && (
-              <svg width="120" height="80" viewBox="0 0 140 100" fill="none">
-                <line x1="30" y1="10" x2="30" y2="90" stroke={darkMode ? "#aaa" : "#666"} strokeWidth="4" strokeLinecap="round" />
-                <line x1="110" y1="10" x2="110" y2="90" stroke={darkMode ? "#aaa" : "#666"} strokeWidth="4" strokeLinecap="round" />
-                <line x1="30" y1="15" x2="110" y2="15" stroke={darkMode ? "#aaa" : "#666"} strokeWidth="4" strokeLinecap="round" />
-                {disposalPhase === "scored" && (
-                  <text x="70" y="60" textAnchor="middle" fill="#4a90b8" fontSize="16" fontWeight="bold" style={{ animation: "goalFlash 0.6s ease-out" }}>IT&apos;S GOOD!</text>
-                )}
-              </svg>
-            )}
+        <div
+          className="fixed inset-0 z-50 select-none"
+          style={{ background: darkMode ? "rgba(26,26,31,0.97)" : "rgba(250,246,240,0.97)", touchAction: "none" }}
+          onTouchStart={disposalPhase === "ready" ? handleFlickStart : undefined}
+          onTouchMove={disposalPhase === "ready" ? handleFlickMove : undefined}
+          onTouchEnd={disposalPhase === "ready" ? handleFlickEnd : undefined}
+          onMouseDown={disposalPhase === "ready" ? handleFlickStart : undefined}
+          onMouseMove={disposalPhase === "ready" && ballPos ? handleFlickMove : undefined}
+          onMouseUp={disposalPhase === "ready" ? handleFlickEnd : undefined}
+        >
+          {/* Target at top */}
+          <div className="absolute top-[15%] left-1/2 -translate-x-1/2 text-center">
+            <span className="text-6xl sm:text-7xl">
+              {disposalMethod === "crumple" && "\uD83D\uDDD1\uFE0F"}
+              {disposalMethod === "swish" && "\uD83C\uDFC0"}
+              {disposalMethod === "fieldgoal" && "\uD83C\uDFC8"}
+            </span>
           </div>
 
-          {/* Ball/object to flick */}
-          {disposalPhase === "ready" && (
-            <button onClick={launchDisposal} className="cursor-pointer animate-pulse-hint">
-              {disposalMethod === "crumple" && (
-                <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: darkMode ? "#555" : "#d6d0c4" }}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={darkMode ? "#ccc" : "#888"} strokeWidth="1.5">
-                    <path d="M4 6l4 2 4-3 4 2 4-1M4 12l3-1 5 3 4-2 4 1M6 18l4-2 4 3 4-1" />
-                  </svg>
-                </div>
-              )}
-              {disposalMethod === "swish" && (
-                <div className="w-16 h-16 rounded-full" style={{ background: "#e07020", border: "2px solid #333" }}>
-                  <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
-                    <path d="M15 32h34M32 15v34" stroke="#333" strokeWidth="1.5" />
-                    <path d="M18 22c5 3 10 3 15 0" stroke="#333" strokeWidth="2" strokeLinecap="round" fill="none" />
-                    <path d="M31 42c5 3 10 3 15 0" stroke="#333" strokeWidth="2" strokeLinecap="round" fill="none" />
-                  </svg>
-                </div>
-              )}
-              {disposalMethod === "fieldgoal" && (
-                <div className="w-14 h-9 flex items-center justify-center" style={{ background: "#8B4513", borderRadius: "50% / 40%", border: "2px solid #5a3010" }}>
-                  <svg width="30" height="16" viewBox="0 0 30 16" fill="none">
-                    <path d="M2 8h26M15 1v14" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-                  </svg>
-                </div>
-              )}
-              <p className="text-xs text-foreground/40 mt-3 text-center">
-                {disposalMethod === "crumple" && "tap to toss"}
-                {disposalMethod === "swish" && "tap to shoot"}
-                {disposalMethod === "fieldgoal" && "tap to kick"}
+          {/* Result text */}
+          {disposalPhase === "scored" && (
+            <div className="absolute top-[30%] left-1/2 -translate-x-1/2 text-center animate-fade-up">
+              <p className="text-2xl font-black" style={{ color: currentMode?.color }}>
+                {disposalMethod === "crumple" && "IN!"}
+                {disposalMethod === "swish" && "SWISH!"}
+                {disposalMethod === "fieldgoal" && "IT'S GOOD!"}
               </p>
-            </button>
+            </div>
+          )}
+          {disposalPhase === "missed" && (
+            <div className="absolute top-[30%] left-1/2 -translate-x-1/2 text-center animate-fade-up">
+              <p className="text-xl font-bold text-foreground/40">Missed! Try again</p>
+            </div>
           )}
 
-          {/* Launched animation */}
-          {disposalPhase === "launched" && (
-            <div className={disposalMethod === "crumple" ? "animate-toss" : disposalMethod === "swish" ? "animate-swish" : "animate-kick"}>
-              {disposalMethod === "crumple" && (
-                <div className="w-16 h-16 rounded-full" style={{ background: darkMode ? "#555" : "#d6d0c4" }} />
-              )}
-              {disposalMethod === "swish" && (
-                <div className="w-16 h-16 rounded-full" style={{ background: "#e07020", border: "2px solid #333" }} />
-              )}
-              {disposalMethod === "fieldgoal" && (
-                <div className="w-14 h-9" style={{ background: "#8B4513", borderRadius: "50% / 40%" }} />
-              )}
+          {/* Ball — draggable from bottom */}
+          {disposalPhase === "ready" && !ballPos && (
+            <div className="absolute bottom-[20%] left-1/2 -translate-x-1/2 text-center">
+              <div className="text-5xl animate-pulse-hint">
+                {disposalMethod === "crumple" && "\uD83D\uDCDD"}
+                {disposalMethod === "swish" && "\uD83C\uDFC0"}
+                {disposalMethod === "fieldgoal" && "\uD83C\uDFC8"}
+              </div>
+              <p className="text-xs text-foreground/40 mt-3">swipe up to {disposalMethod === "crumple" ? "toss" : disposalMethod === "swish" ? "shoot" : "kick"}</p>
+            </div>
+          )}
+
+          {/* Ball following finger */}
+          {ballPos && disposalPhase === "ready" && (
+            <div className="absolute pointer-events-none text-4xl" style={{ left: ballPos.x - 24, top: ballPos.y - 24 }}>
+              {disposalMethod === "crumple" && "\uD83D\uDCDD"}
+              {disposalMethod === "swish" && "\uD83C\uDFC0"}
+              {disposalMethod === "fieldgoal" && "\uD83C\uDFC8"}
+            </div>
+          )}
+
+          {/* Ball in flight */}
+          {flightPos && disposalPhase === "launched" && (
+            <div className="absolute pointer-events-none text-4xl transition-none" style={{ left: flightPos.x - 24, top: flightPos.y - 24 }}>
+              {disposalMethod === "crumple" && "\uD83D\uDCDD"}
+              {disposalMethod === "swish" && "\uD83C\uDFC0"}
+              {disposalMethod === "fieldgoal" && "\uD83C\uDFC8"}
             </div>
           )}
 
           {/* Cancel */}
-          {disposalPhase === "ready" && (
-            <button onClick={() => { setDisposalMethod(null); setDisposalPhase(null); }}
-              className="mt-8 text-xs text-foreground/30 hover:text-foreground/50 cursor-pointer">cancel</button>
+          {(disposalPhase === "ready" || disposalPhase === "missed") && (
+            <button onClick={() => { setDisposalMethod(null); setDisposalPhase(null); setBallPos(null); setFlightPos(null); }}
+              className="absolute bottom-[8%] left-1/2 -translate-x-1/2 text-xs text-foreground/30 hover:text-foreground/50 cursor-pointer">cancel</button>
           )}
         </div>
       )}
