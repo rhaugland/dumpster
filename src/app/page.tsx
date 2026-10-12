@@ -1123,9 +1123,9 @@ export default function Home() {
 
     return (
       <div className="h-screen flex flex-col overflow-hidden">
-        {/* Auth corner */}
-        <div className={`fixed top-4 right-4 z-50 ${isMobile && isLoggedIn ? "hidden" : ""}`}>
-          {isLoggedIn ? (
+        {/* Auth corner — logged-in only (guests use inline sign up link) */}
+        {isLoggedIn && (
+          <div className={`fixed top-4 right-4 z-50 ${isMobile ? "hidden" : ""}`}>
             <div className="flex items-center gap-3 text-sm text-muted">
               <button onClick={toggleDarkMode} className="text-muted hover:text-foreground cursor-pointer" title={darkMode ? "Light mode" : "Dark mode"}>
                 {darkMode ? (
@@ -1142,15 +1142,8 @@ export default function Home() {
               <span>{email}</span>
               <button onClick={() => { localStorage.removeItem("dumpster-session"); setIsLoggedIn(false); setEmail(""); setPassword(""); setFirstName(""); setLastName(""); }} className="text-muted hover:text-foreground cursor-pointer">logout</button>
             </div>
-          ) : (
-            <div className="text-right">
-              <p className="text-xs text-foreground/40 mb-0.5">see what you keep burning</p>
-              <button onClick={() => { setShowLogin(true); setAuthMode("login"); }} className="text-sm text-foreground/60 hover:text-foreground cursor-pointer font-medium">sign in</button>
-              <span className="text-foreground/30 mx-1">or</span>
-              <button onClick={() => { setShowLogin(true); setAuthMode("signup"); }} className="text-sm text-foreground/60 hover:text-foreground cursor-pointer font-medium">sign up</button>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {showLogin && !isLoggedIn && (
           <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 flex items-end sm:items-center justify-center sm:p-4">
