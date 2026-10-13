@@ -504,8 +504,9 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeMode]);
 
-  // iOS keyboard: detect open/close to hide nav and scroll chat
+  // iOS keyboard: detect open/close, track visual viewport height
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [vvHeight, setVvHeight] = useState<number | null>(null);
   useEffect(() => {
     if (typeof window === "undefined" || !window.visualViewport) return;
     const vv = window.visualViewport;
@@ -513,6 +514,7 @@ export default function Home() {
     const onResize = () => {
       const isOpen = vv.height < initialHeight * 0.75;
       setKeyboardOpen(isOpen);
+      setVvHeight(vv.height);
       if (isOpen) {
         setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
       }
@@ -1359,7 +1361,7 @@ export default function Home() {
     if (isMobile && isLoggedIn && mobileTab === "dumpster") {
       return (
         <div className="min-h-screen flex flex-col">
-          <div className="px-4 py-3 border-b border-border bg-white/80 backdrop-blur-sm" style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}>
+          <div className="px-4 py-3 border-b border-border bg-white/80 backdrop-blur-sm safe-top">
             <h2 className="text-lg font-bold text-center">The Dumpster</h2>
           </div>
           <DumpsterFeedView />
@@ -1373,7 +1375,7 @@ export default function Home() {
     if (isMobile && isLoggedIn && mobileTab === "profile") {
       return (
         <div className="min-h-screen flex flex-col">
-          <div className="px-4 py-3 border-b border-border bg-white/80 backdrop-blur-sm" style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}>
+          <div className="px-4 py-3 border-b border-border bg-white/80 backdrop-blur-sm safe-top">
             <h2 className="text-lg font-bold text-center">Profile</h2>
           </div>
           <ProfileView />
@@ -1478,7 +1480,7 @@ export default function Home() {
         )}
 
         {/* Hero */}
-        <div className={`flex-1 ${isMobile ? "overflow-hidden flex flex-col" : "overflow-y-auto"} px-4 sm:px-6 sm:pt-10 ${isMobile && isLoggedIn ? "pb-20" : "pb-6"}`} style={{ paddingTop: isMobile ? "max(1rem, env(safe-area-inset-top))" : undefined }}>
+        <div className={`flex-1 ${isMobile ? "overflow-hidden flex flex-col safe-top" : "overflow-y-auto"} px-4 sm:px-6 sm:pt-10 ${isMobile && isLoggedIn ? "pb-20" : "pb-6"}`}>
           <div className={`max-w-lg mx-auto flex flex-col items-center ${isMobile ? "flex-1 min-h-0" : ""}`}>
             <DumpsterLogo size={isMobile ? 48 : 80} />
             <h1 className="text-2xl sm:text-5xl font-black tracking-tight mt-1 sm:mt-3 mb-0.5 sm:mb-2 text-foreground">Dumpster</h1>
@@ -1586,8 +1588,8 @@ export default function Home() {
 
   /* ─── CHAT ─── */
   return (
-    <div className="h-dvh flex flex-col relative">
-      <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-b border-border bg-white/80 backdrop-blur-sm" style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}>
+    <div className="flex flex-col relative" style={{ height: vvHeight && keyboardOpen ? `${vvHeight}px` : "100dvh" }}>
+      <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-b border-border bg-white/80 backdrop-blur-sm safe-top">
         <button onClick={() => {
           if (isLoggedIn && messages.filter(m => m.role === "user").length > 0) {
             setShowTossToDumpster(true);
