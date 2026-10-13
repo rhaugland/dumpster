@@ -452,7 +452,7 @@ export default function Home() {
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
   const [lockCountdown, setLockCountdown] = useState("");
   const messageTimes = useRef<number[]>([]);
-  const [mobileTab, setMobileTab] = useState<"chats" | "air" | "profile">("chats");
+  const [mobileTab, setMobileTab] = useState<"chats" | "dumpster" | "profile">("chats");
   const [isMobile, setIsMobile] = useState(false);
 
   // New feature states
@@ -478,12 +478,16 @@ export default function Home() {
   const touchRef = useRef<{ startX: number; startY: number; startTime: number; lastX: number; lastY: number; lastTime: number } | null>(null);
   const animFrameRef = useRef<number | null>(null);
 
-  // Air It Out feed
-  interface AiredPost { id: string; anonName: string; topic: string; mode: string; messages: { role: string; content: string }[]; timestamp: number; }
-  const [airFeed, setAirFeed] = useState<AiredPost[]>([]);
-  const [airLoading, setAirLoading] = useState(false);
-  const [airFilter, setAirFilter] = useState<string | null>(null);
-  const [airPosting, setAirPosting] = useState(false);
+  // The Dumpster feed
+  interface DumpsterPost { id: string; anonName: string; topic: string; mode: string; messages: { role: string; content: string }[]; timestamp: number; meTooCount: number; viewCount: number; }
+  const [dumpsterFeed, setDumpsterFeed] = useState<DumpsterPost[]>([]);
+  const [dumpsterLoading, setDumpsterLoading] = useState(false);
+  const [dumpsterFilter, setDumpsterFilter] = useState<string | null>(null);
+  const [dumpsterPosting, setDumpsterPosting] = useState(false);
+  const [meToodPosts, setMeToodPosts] = useState<Set<string>>(() => {
+    try { const raw = localStorage.getItem("dumpster-metoo"); return raw ? new Set(JSON.parse(raw)) : new Set(); } catch { return new Set(); }
+  });
+  const [showTossToDumpster, setShowTossToDumpster] = useState(false);
 
   const playSfx = useCallback((type: "send" | "torch" | "lock" | "unlock" | "achieve") => {
     if (soundEnabled) playSound(type);
@@ -951,24 +955,24 @@ export default function Home() {
   const currentMode = MODES.find((m) => m.id === activeMode);
   const CurrentCharacter = activeMode ? CHARACTER_MAP[activeMode] : null;
 
-  /* ─── AIR IT OUT ─── */
-  const fetchAirFeed = useCallback(async (topicFilter?: string | null) => {
-    setAirLoading(true);
+  /* ─── THE DUMPSTER ─── */
+  const fetchDumpsterFeed = useCallback(async (topicFilter?: string | null) => {
+    setDumpsterLoading(true);
     try {
-      const url = topicFilter ? `/api/air?topic=${topicFilter}` : "/api/air";
+      const url = topicFilter ? `/api/dumpster?topic=${topicFilter}` : "/api/dumpster";
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        setAirFeed(data.posts || []);
+        setDumpsterFeed(data.posts || []);
       }
-    } catch {} finally { setAirLoading(false); }
+    } catch {} finally { setDumpsterLoading(false); }
   }, []);
 
-  const airItOut = async () => {
-    if (!email || !activeMode || messages.length === 0 || airPosting) return;
-    setAirPosting(true);
+  const tossToDumpster = async () => {
+    if (!email || !activeMode || messages.length === 0 || dumpsterPosting) return;
+    setDumpsterPosting(true);
     try {
-      const res = await fetch("/api/air", {
+      const res = await fetch("/api/dumpster", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, topic, mode: activeMode, messages }),
@@ -976,17 +980,37 @@ export default function Home() {
       if (res.ok) {
         clearMessages();
         setActiveMode(null);
-        setMobileTab("air");
-        fetchAirFeed();
+        setShowTossToDumpster(false);
+        setMobileTab("dumpster");
+        fetchDumpsterFeed();
       }
-    } catch {} finally { setAirPosting(false); }
+    } catch {} finally { setDumpsterPosting(false); }
+  };
+
+  const handleMeToo = async (postId: string) => {
+    if (meToodPosts.has(postId)) return;
+    try {
+      const res = await fetch("/api/dumpster", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: postId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const updated = new Set(meToodPosts);
+        updated.add(postId);
+        setMeToodPosts(updated);
+        localStorage.setItem("dumpster-metoo", JSON.stringify([...updated]));
+        setDumpsterFeed(prev => prev.map(p => p.id === postId ? { ...p, meTooCount: data.meTooCount } : p));
+      }
+    } catch {}
   };
 
   useEffect(() => {
-    if (mobileTab === "air" || (!isMobile && activeMode === null)) {
-      fetchAirFeed(airFilter);
+    if (mobileTab === "dumpster" || (!isMobile && activeMode === null)) {
+      fetchDumpsterFeed(dumpsterFilter);
     }
-  }, [mobileTab, airFilter, fetchAirFeed, isMobile, activeMode]);
+  }, [mobileTab, dumpsterFilter, fetchDumpsterFeed, isMobile, activeMode]);
 
   /* ─── MOOD CHECK-IN ─── */
   const MoodPicker = ({ value, onChange, label }: { value: number | null; onChange: (v: number) => void; label: string }) => (
@@ -1185,49 +1209,50 @@ export default function Home() {
     );
   };
 
-  /* ─── AIR IT OUT FEED VIEW ─── */
-  const AirFeedView = () => (
+  /* ─── THE DUMPSTER FEED VIEW ─── */
+  const DumpsterFeedView = () => (
     <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 pb-24">
       <div className="max-w-lg mx-auto">
         <div className="text-center mb-4">
-          <p className="text-lg font-bold text-foreground">Air It Out</p>
-          <p className="text-xs text-foreground/40">Anonymous vents from the community. Auto-deletes in 24h.</p>
+          <p className="text-lg font-bold text-foreground">The Dumpster</p>
+          <p className="text-xs text-foreground/40">Anonymous vents. Auto-deletes in 24h. You&apos;re not alone.</p>
         </div>
 
         {/* Topic filter */}
         <div className="flex gap-1.5 overflow-x-auto no-scrollbar mb-4 pb-1">
           <button
-            onClick={() => setAirFilter(null)}
+            onClick={() => setDumpsterFilter(null)}
             className="text-[11px] px-2.5 py-1 rounded-full cursor-pointer font-medium shrink-0 transition-all"
-            style={!airFilter ? { background: darkMode ? "#555" : "#333", color: "#fff" } : { border: "1px solid var(--color-border)", color: darkMode ? "#aaa" : "#888" }}
+            style={!dumpsterFilter ? { background: darkMode ? "#555" : "#333", color: "#fff" } : { border: "1px solid var(--color-border)", color: darkMode ? "#aaa" : "#888" }}
           >All</button>
           {TOPICS.map(t => (
             <button key={t.id}
-              onClick={() => setAirFilter(airFilter === t.id ? null : t.id)}
+              onClick={() => setDumpsterFilter(dumpsterFilter === t.id ? null : t.id)}
               className="text-[11px] px-2.5 py-1 rounded-full cursor-pointer font-medium shrink-0 transition-all"
-              style={airFilter === t.id ? { background: darkMode ? "#555" : "#333", color: "#fff" } : { border: "1px solid var(--color-border)", color: darkMode ? "#aaa" : "#888" }}
+              style={dumpsterFilter === t.id ? { background: darkMode ? "#555" : "#333", color: "#fff" } : { border: "1px solid var(--color-border)", color: darkMode ? "#aaa" : "#888" }}
             >{t.label}</button>
           ))}
         </div>
 
-        {airLoading && (
+        {dumpsterLoading && (
           <div className="text-center py-10">
             <p className="text-sm text-foreground/40">Loading...</p>
           </div>
         )}
 
-        {!airLoading && airFeed.length === 0 && (
+        {!dumpsterLoading && dumpsterFeed.length === 0 && (
           <div className="text-center py-10">
-            <p className="text-2xl mb-2">&#x1F32C;&#xFE0F;</p>
-            <p className="text-sm text-foreground/50">Nothing aired yet.</p>
-            <p className="text-xs text-foreground/30 mt-1">Start a chat, then air it out for the world to see.</p>
+            <DumpsterLogo size={40} />
+            <p className="text-sm text-foreground/50 mt-3">Nothing in the dumpster yet.</p>
+            <p className="text-xs text-foreground/30 mt-1">Start a chat, then toss it here for the world to see.</p>
           </div>
         )}
 
         <div className="space-y-3">
-          {airFeed.map(post => {
+          {dumpsterFeed.map(post => {
             const postMode = MODES.find(m => m.id === post.mode);
             const PostChar = CHARACTER_MAP[post.mode as Mode];
+            const alreadyMeTooed = meToodPosts.has(post.id);
             return (
               <div key={post.id} className="bg-white border border-border rounded-xl p-4">
                 {/* Post header */}
@@ -1255,10 +1280,24 @@ export default function Home() {
                     <p className="text-[10px] text-foreground/30 text-center">+{post.messages.length - 6} more messages</p>
                   )}
                 </div>
-                {/* Timestamp */}
-                <p className="text-[10px] text-foreground/25 mt-2">
-                  {new Date(post.timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
-                </p>
+                {/* Footer: me too + views + timestamp */}
+                <div className="flex items-center gap-3 mt-3 pt-2 border-t border-border/50">
+                  <button
+                    onClick={() => handleMeToo(post.id)}
+                    disabled={alreadyMeTooed}
+                    className="flex items-center gap-1.5 text-[11px] cursor-pointer transition-all active:scale-95"
+                    style={{ color: alreadyMeTooed ? (darkMode ? "#e0ddd8" : "#333") : (darkMode ? "#888" : "#aaa") }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill={alreadyMeTooed ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M7 11l5-5 5 5M12 6v12"/>
+                    </svg>
+                    <span className="font-medium">me too{post.meTooCount > 0 ? ` (${post.meTooCount})` : ""}</span>
+                  </button>
+                  <span className="text-[10px] text-foreground/25 ml-auto">
+                    {post.viewCount > 0 && `${post.viewCount} ${post.viewCount === 1 ? "read" : "reads"} · `}
+                    {new Date(post.timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+                  </span>
+                </div>
               </div>
             );
           })}
@@ -1277,11 +1316,11 @@ export default function Home() {
           </svg>
           <span className="text-[10px] font-medium" style={{ color: mobileTab === "chats" && !activeMode ? (darkMode ? "#e0ddd8" : "#333") : "#aaa" }}>Chats</span>
         </button>
-        <button onClick={() => { setMobileTab("air"); setActiveMode(null); }} className="flex flex-col items-center gap-0.5 px-6 py-1 cursor-pointer">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={mobileTab === "air" ? (darkMode ? "#e0ddd8" : "#333") : "#aaa"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/>
+        <button onClick={() => { setMobileTab("dumpster"); setActiveMode(null); }} className="flex flex-col items-center gap-0.5 px-6 py-1 cursor-pointer">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={mobileTab === "dumpster" ? (darkMode ? "#e0ddd8" : "#333") : "#aaa"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 6h18M5 6l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M10 3h4"/>
           </svg>
-          <span className="text-[10px] font-medium" style={{ color: mobileTab === "air" ? (darkMode ? "#e0ddd8" : "#333") : "#aaa" }}>Air</span>
+          <span className="text-[10px] font-medium" style={{ color: mobileTab === "dumpster" ? (darkMode ? "#e0ddd8" : "#333") : "#aaa" }}>Dumpster</span>
         </button>
         <button onClick={() => { setMobileTab("profile"); setActiveMode(null); }} className="flex flex-col items-center gap-0.5 px-6 py-1 cursor-pointer">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={mobileTab === "profile" ? (darkMode ? "#e0ddd8" : "#333") : "#aaa"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1316,14 +1355,14 @@ export default function Home() {
 
   /* ─── LANDING ─── */
   if (!activeMode) {
-    // Mobile air tab
-    if (isMobile && isLoggedIn && mobileTab === "air") {
+    // Mobile dumpster tab
+    if (isMobile && isLoggedIn && mobileTab === "dumpster") {
       return (
         <div className="min-h-screen flex flex-col">
           <div className="px-4 py-3 border-b border-border bg-white/80 backdrop-blur-sm" style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}>
-            <h2 className="text-lg font-bold text-center">Air It Out</h2>
+            <h2 className="text-lg font-bold text-center">The Dumpster</h2>
           </div>
-          <AirFeedView />
+          <DumpsterFeedView />
           <MobileNav />
           <AchievementToast />
         </div>
@@ -1517,10 +1556,10 @@ export default function Home() {
               );
             })()}
 
-            {/* Air It Out section (desktop) */}
+            {/* The Dumpster section (desktop) */}
             {isLoggedIn && !isMobile && (
               <div className="w-full mt-6">
-                <AirFeedView />
+                <DumpsterFeedView />
               </div>
             )}
 
@@ -1549,7 +1588,14 @@ export default function Home() {
   return (
     <div className="h-dvh flex flex-col relative">
       <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-b border-border bg-white/80 backdrop-blur-sm" style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top))" }}>
-        <button onClick={() => { if (!isLoggedIn) setMessages([]); setActiveMode(null); }}
+        <button onClick={() => {
+          if (isLoggedIn && messages.filter(m => m.role === "user").length > 0) {
+            setShowTossToDumpster(true);
+          } else {
+            if (!isLoggedIn) setMessages([]);
+            setActiveMode(null);
+          }
+        }}
           className="text-sm text-muted hover:text-foreground cursor-pointer flex items-center gap-1 font-medium shrink-0">
           <span>&larr;</span> <span className="hidden sm:inline">back</span>
         </button>
@@ -1852,11 +1898,11 @@ export default function Home() {
               ))}
             </div>
             {isLoggedIn && (
-              <button onClick={() => { setShowDisposalPicker(false); airItOut(); }}
-                disabled={airPosting}
+              <button onClick={() => { setShowDisposalPicker(false); tossToDumpster(); }}
+                disabled={dumpsterPosting}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer hover:bg-background transition-colors active:scale-[0.98] text-left border-t border-border mt-1 pt-3">
-                <span className="text-xl">&#x1F4E2;</span>
-                <span className="text-sm font-medium text-foreground/80">{airPosting ? "Posting..." : "Air it out"}</span>
+                <span className="text-xl">&#x1F5D1;&#xFE0F;</span>
+                <span className="text-sm font-medium text-foreground/80">{dumpsterPosting ? "Tossing..." : "Toss to the dumpster"}</span>
                 <span className="ml-auto text-[10px] text-foreground/30">post anonymously</span>
               </button>
             )}
@@ -1937,6 +1983,32 @@ export default function Home() {
             <button onClick={() => { setDisposalMethod(null); setDisposalPhase(null); setBallPos(null); setFlightPos(null); }}
               className="absolute bottom-[8%] left-1/2 -translate-x-1/2 text-xs text-foreground/30 hover:text-foreground/50 cursor-pointer">cancel</button>
           )}
+        </div>
+      )}
+
+      {/* Toss to the dumpster prompt */}
+      {showTossToDumpster && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 flex items-end sm:items-center justify-center sm:p-4">
+          <div className="relative bg-white rounded-t-2xl sm:rounded-2xl p-6 w-full sm:max-w-sm shadow-md border border-border pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+            <div className="text-center mb-5">
+              <DumpsterLogo size={40} />
+              <p className="font-semibold text-foreground mt-3">Done venting?</p>
+              <p className="text-xs text-foreground/50 mt-1">Toss it to the dumpster so others know they&apos;re not alone. Posted anonymously, gone in 24h.</p>
+            </div>
+            <button onClick={tossToDumpster} disabled={dumpsterPosting}
+              className="w-full py-3 rounded-xl text-sm font-semibold text-white cursor-pointer mb-2 active:scale-[0.98] transition-transform"
+              style={{ background: currentMode?.color || "#333" }}>
+              {dumpsterPosting ? "Tossing..." : "Toss to the dumpster"}
+            </button>
+            <button onClick={() => { setShowTossToDumpster(false); setShowDisposalPicker(true); }}
+              className="w-full py-2.5 rounded-xl text-sm font-medium text-foreground/60 hover:text-foreground cursor-pointer border border-border">
+              Destroy it instead
+            </button>
+            <button onClick={() => { setShowTossToDumpster(false); setActiveMode(null); }}
+              className="w-full py-2 text-xs text-foreground/30 hover:text-foreground/50 cursor-pointer mt-2">
+              Just leave
+            </button>
+          </div>
         </div>
       )}
 

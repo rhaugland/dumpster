@@ -3,15 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 
 const sql = neon(process.env.DATABASE_URL || "");
 
-interface AiredPost {
-  id: string;
-  anonName: string;
-  topic: string;
-  mode: string;
-  messages: { role: string; content: string }[];
-  timestamp: number;
-}
-
 function getAnonName(email: string): string {
   let hash = 0;
   for (let i = 0; i < email.length; i++) {
@@ -31,10 +22,10 @@ export async function POST(req: NextRequest) {
       (m: { role: string }) => m.role === "user" || m.role === "assistant"
     );
     if (chatMessages.length === 0) {
-      return NextResponse.json({ error: "No messages to air" }, { status: 400 });
+      return NextResponse.json({ error: "No messages to post" }, { status: 400 });
     }
 
-    const id = `air_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const id = `dump_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const anonName = getAnonName(email);
     const cleanMessages = JSON.stringify(chatMessages.map((m: { role: string; content: string }) => ({
       role: m.role,
@@ -47,7 +38,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ id, anonName });
   } catch (error) {
-    console.error("Air API error:", error);
+    console.error("Dumpster API error:", error);
     return NextResponse.json(
       { error: "Something went wrong" },
       { status: 500 }
@@ -71,16 +62,23 @@ export async function GET(req: NextRequest) {
       rows = await sql`SELECT * FROM aired_posts ORDER BY created_at DESC LIMIT ${limit} OFFSET ${cursor}`;
     }
 
-    const posts: AiredPost[] = rows.map((row) => ({
+    // Increment view count for fetched posts
+    const ids = rows.map(r => r.id as string);
+    if (ids.length > 0) {
+      await sql`UPDATE aired_posts SET view_count = view_count + 1 WHERE id = ANY(${ids}::text[])`;
+    }
+
+    const posts = rows.map((row) => ({
       id: row.id as string,
       anonName: row.anon_name as string,
       topic: row.topic as string,
       mode: row.mode as string,
       messages: typeof row.messages === "string" ? JSON.parse(row.messages) : row.messages,
       timestamp: new Date(row.created_at as string).getTime(),
+      meTooCount: parseInt(row.me_too_count as string) || 0,
+      viewCount: parseInt(row.view_count as string) || 0,
     }));
 
-    // Check if there are more
     let totalRows;
     if (topic) {
       totalRows = await sql`SELECT COUNT(*) as count FROM aired_posts WHERE topic = ${topic}`;
@@ -92,7 +90,26 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ posts, hasMore });
   } catch (error) {
-    console.error("Air feed error:", error);
+    console.error("Dumpster feed error:", error);
     return NextResponse.json({ posts: [], hasMore: false });
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const { id } = await req.json();
+    if (!id) {
+      return NextResponse.json({ error: "Missing post id" }, { status: 400 });
+    }
+
+    const rows = await sql`UPDATE aired_posts SET me_too_count = me_too_count + 1 WHERE id = ${id} RETURNING me_too_count`;
+    if (rows.length === 0) {
+      return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ meTooCount: rows[0].me_too_count });
+  } catch (error) {
+    console.error("Me too error:", error);
+    return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
   }
 }
