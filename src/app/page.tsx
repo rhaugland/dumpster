@@ -783,9 +783,10 @@ export default function Home() {
           messageCount: messages.filter(m => m.role === "user").length,
           moodBefore: moodBefore ?? undefined,
         };
-        setPendingBurnEntry(entry);
-        setShowMoodAfter(true);
-        return;
+        const log = getBurnLog(email);
+        log.burns.push(entry);
+        saveBurnLog(email, log);
+        setTimeout(() => checkAchievements(email), 300);
       }
       executeBurn("torch");
     } else if (method === "shred") {
