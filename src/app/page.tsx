@@ -485,6 +485,7 @@ export default function Home() {
   const [dumpsterFilter, setDumpsterFilter] = useState<string | null>(null);
   const [dumpsterModeFilter, setDumpsterModeFilter] = useState<string | null>(null);
   const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
+  const [showDumpsterFilters, setShowDumpsterFilters] = useState(false);
   const [dumpsterPosting, setDumpsterPosting] = useState(false);
   const [meToodPosts, setMeToodPosts] = useState<Set<string>>(() => {
     try { const raw = localStorage.getItem("dumpster-metoo"); return raw ? new Set(JSON.parse(raw)) : new Set(); } catch { return new Set(); }
@@ -1238,42 +1239,66 @@ export default function Home() {
     return (
     <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 pb-24">
       <div className="max-w-lg mx-auto">
-        <div className="text-center mb-3">
-          <p className="text-lg font-bold text-foreground">The Dumpster</p>
-          <p className="text-xs text-foreground/40">Anonymous vents. Auto-deletes in 24h. You&apos;re not alone.</p>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="text-lg font-bold text-foreground">The Dumpster</p>
+            <p className="text-xs text-foreground/40">Anonymous vents. Gone in 24h.</p>
+          </div>
+          <button onClick={() => setShowDumpsterFilters(!showDumpsterFilters)}
+            className="relative flex items-center gap-1.5 px-3 py-2 rounded-xl cursor-pointer transition-all active:scale-95"
+            style={{ background: (dumpsterFilter || dumpsterModeFilter) ? (darkMode ? "#3a3a40" : "#f0ebe3") : "transparent", border: "1px solid var(--color-border)" }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={dumpsterFilter || dumpsterModeFilter ? (darkMode ? "#e0ddd8" : "#333") : (darkMode ? "#888" : "#aaa")} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+            </svg>
+            {(dumpsterFilter || dumpsterModeFilter) && (
+              <span className="text-[11px] font-medium text-foreground/70">
+                {[dumpsterModeFilter && MODES.find(m => m.id === dumpsterModeFilter)?.label, dumpsterFilter && TOPICS.find(t => t.id === dumpsterFilter)?.label].filter(Boolean).join(" + ")}
+              </span>
+            )}
+          </button>
         </div>
 
-        {/* Style filter (mode) */}
-        <div className="flex gap-1.5 overflow-x-auto no-scrollbar mb-2 pb-1">
-          <button
-            onClick={() => setDumpsterModeFilter(null)}
-            className="text-[11px] px-2.5 py-1 rounded-full cursor-pointer font-medium shrink-0 transition-all"
-            style={!dumpsterModeFilter ? { background: darkMode ? "#555" : "#333", color: "#fff" } : { border: "1px solid var(--color-border)", color: darkMode ? "#aaa" : "#888" }}
-          >All styles</button>
-          {MODES.filter(m => m.id !== "silence").map(m => (
-            <button key={m.id}
-              onClick={() => setDumpsterModeFilter(dumpsterModeFilter === m.id ? null : m.id)}
-              className="text-[11px] px-2.5 py-1 rounded-full cursor-pointer font-medium shrink-0 transition-all"
-              style={dumpsterModeFilter === m.id ? { background: m.color, color: "#fff" } : { border: "1px solid var(--color-border)", color: darkMode ? "#aaa" : "#888" }}
-            >{m.label}</button>
-          ))}
-        </div>
-
-        {/* Topic filter */}
-        <div className="flex gap-1.5 overflow-x-auto no-scrollbar mb-4 pb-1">
-          <button
-            onClick={() => setDumpsterFilter(null)}
-            className="text-[11px] px-2.5 py-1 rounded-full cursor-pointer font-medium shrink-0 transition-all"
-            style={!dumpsterFilter ? { background: darkMode ? "#555" : "#333", color: "#fff" } : { border: "1px solid var(--color-border)", color: darkMode ? "#aaa" : "#888" }}
-          >All topics</button>
-          {TOPICS.map(t => (
-            <button key={t.id}
-              onClick={() => setDumpsterFilter(dumpsterFilter === t.id ? null : t.id)}
-              className="text-[11px] px-2.5 py-1 rounded-full cursor-pointer font-medium shrink-0 transition-all"
-              style={dumpsterFilter === t.id ? { background: darkMode ? "#555" : "#333", color: "#fff" } : { border: "1px solid var(--color-border)", color: darkMode ? "#aaa" : "#888" }}
-            >{t.label}</button>
-          ))}
-        </div>
+        {/* Filter dropdown */}
+        {showDumpsterFilters && (
+          <div className="bg-white border border-border rounded-xl p-4 mb-4 animate-fade-up">
+            <div className="mb-3">
+              <p className="text-[11px] font-semibold text-foreground/50 uppercase tracking-wider mb-2">Style</p>
+              <div className="flex gap-1.5 flex-wrap">
+                <button onClick={() => setDumpsterModeFilter(null)}
+                  className="text-[11px] px-2.5 py-1 rounded-full cursor-pointer font-medium transition-all"
+                  style={!dumpsterModeFilter ? { background: darkMode ? "#555" : "#333", color: "#fff" } : { border: "1px solid var(--color-border)", color: darkMode ? "#aaa" : "#888" }}
+                >All</button>
+                {MODES.filter(m => m.id !== "silence").map(m => (
+                  <button key={m.id}
+                    onClick={() => setDumpsterModeFilter(dumpsterModeFilter === m.id ? null : m.id)}
+                    className="text-[11px] px-2.5 py-1 rounded-full cursor-pointer font-medium transition-all"
+                    style={dumpsterModeFilter === m.id ? { background: m.color, color: "#fff" } : { border: "1px solid var(--color-border)", color: darkMode ? "#aaa" : "#888" }}
+                  >{m.label}</button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold text-foreground/50 uppercase tracking-wider mb-2">Topic</p>
+              <div className="flex gap-1.5 flex-wrap">
+                <button onClick={() => setDumpsterFilter(null)}
+                  className="text-[11px] px-2.5 py-1 rounded-full cursor-pointer font-medium transition-all"
+                  style={!dumpsterFilter ? { background: darkMode ? "#555" : "#333", color: "#fff" } : { border: "1px solid var(--color-border)", color: darkMode ? "#aaa" : "#888" }}
+                >All</button>
+                {TOPICS.map(t => (
+                  <button key={t.id}
+                    onClick={() => setDumpsterFilter(dumpsterFilter === t.id ? null : t.id)}
+                    className="text-[11px] px-2.5 py-1 rounded-full cursor-pointer font-medium transition-all"
+                    style={dumpsterFilter === t.id ? { background: darkMode ? "#555" : "#333", color: "#fff" } : { border: "1px solid var(--color-border)", color: darkMode ? "#aaa" : "#888" }}
+                  >{t.label}</button>
+                ))}
+              </div>
+            </div>
+            {(dumpsterFilter || dumpsterModeFilter) && (
+              <button onClick={() => { setDumpsterFilter(null); setDumpsterModeFilter(null); }}
+                className="text-[11px] text-foreground/40 hover:text-foreground/60 cursor-pointer mt-3">Clear filters</button>
+            )}
+          </div>
+        )}
 
         {dumpsterLoading && (
           <div className="text-center py-10">
