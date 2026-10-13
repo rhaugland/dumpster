@@ -1478,11 +1478,11 @@ export default function Home() {
         )}
 
         {/* Hero */}
-        <div className={`flex-1 overflow-y-auto px-4 sm:px-6 sm:pt-10 ${isMobile && isLoggedIn ? "pb-20" : "pb-6"}`} style={{ paddingTop: isMobile ? "max(1rem, env(safe-area-inset-top))" : undefined }}>
-          <div className="max-w-lg mx-auto flex flex-col items-center">
-            <DumpsterLogo size={isMobile ? 56 : 80} />
-            <h1 className="text-3xl sm:text-5xl font-black tracking-tight mt-2 sm:mt-3 mb-1 sm:mb-2 text-foreground">Dumpster</h1>
-            <p className="text-muted text-xs sm:text-base mb-4 sm:mb-6">toss it. torch it. move on.</p>
+        <div className={`flex-1 ${isMobile ? "overflow-hidden flex flex-col" : "overflow-y-auto"} px-4 sm:px-6 sm:pt-10 ${isMobile && isLoggedIn ? "pb-20" : "pb-6"}`} style={{ paddingTop: isMobile ? "max(1rem, env(safe-area-inset-top))" : undefined }}>
+          <div className={`max-w-lg mx-auto flex flex-col items-center ${isMobile ? "flex-1 min-h-0" : ""}`}>
+            <DumpsterLogo size={isMobile ? 48 : 80} />
+            <h1 className="text-2xl sm:text-5xl font-black tracking-tight mt-1 sm:mt-3 mb-0.5 sm:mb-2 text-foreground">Dumpster</h1>
+            <p className="text-muted text-xs sm:text-base mb-3 sm:mb-6">toss it. torch it. move on.</p>
 
             {/* Daily prompt — hidden on mobile */}
             <div className="w-full mb-6 sm:mb-10 hidden sm:block">
@@ -1497,7 +1497,7 @@ export default function Home() {
             )}
 
             {/* Chat list */}
-            <div className="w-full space-y-2 sm:space-y-3">
+            <div className={`w-full space-y-2 sm:space-y-3 ${isMobile ? "flex-1 overflow-y-auto min-h-0" : ""}`}>
               {MODES.map((mode, i) => {
                 const Character = CHARACTER_MAP[mode.id];
                 return (

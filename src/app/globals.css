@@ -16,9 +16,13 @@
   --font-mono: var(--font-geist-mono);
 }
 
-body {
+html, body {
   background: var(--color-background);
   color: var(--color-foreground);
+  overscroll-behavior: none;
+}
+@media (max-width: 639px) {
+  html, body { overflow: hidden; height: 100%; position: fixed; width: 100%; }
 }
 
 /* Dynamic viewport height */
