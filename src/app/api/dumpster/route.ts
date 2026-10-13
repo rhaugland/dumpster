@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     const topic = req.nextUrl.searchParams.get("topic");
+    const mode = req.nextUrl.searchParams.get("mode");
     const cursor = parseInt(req.nextUrl.searchParams.get("cursor") || "0");
     const limit = 20;
 
@@ -56,8 +57,12 @@ export async function GET(req: NextRequest) {
     await sql`DELETE FROM aired_posts WHERE created_at < NOW() - INTERVAL '24 hours'`;
 
     let rows;
-    if (topic) {
+    if (topic && mode) {
+      rows = await sql`SELECT * FROM aired_posts WHERE topic = ${topic} AND mode = ${mode} ORDER BY created_at DESC LIMIT ${limit} OFFSET ${cursor}`;
+    } else if (topic) {
       rows = await sql`SELECT * FROM aired_posts WHERE topic = ${topic} ORDER BY created_at DESC LIMIT ${limit} OFFSET ${cursor}`;
+    } else if (mode) {
+      rows = await sql`SELECT * FROM aired_posts WHERE mode = ${mode} ORDER BY created_at DESC LIMIT ${limit} OFFSET ${cursor}`;
     } else {
       rows = await sql`SELECT * FROM aired_posts ORDER BY created_at DESC LIMIT ${limit} OFFSET ${cursor}`;
     }
@@ -80,8 +85,12 @@ export async function GET(req: NextRequest) {
     }));
 
     let totalRows;
-    if (topic) {
+    if (topic && mode) {
+      totalRows = await sql`SELECT COUNT(*) as count FROM aired_posts WHERE topic = ${topic} AND mode = ${mode}`;
+    } else if (topic) {
       totalRows = await sql`SELECT COUNT(*) as count FROM aired_posts WHERE topic = ${topic}`;
+    } else if (mode) {
+      totalRows = await sql`SELECT COUNT(*) as count FROM aired_posts WHERE mode = ${mode}`;
     } else {
       totalRows = await sql`SELECT COUNT(*) as count FROM aired_posts`;
     }

@@ -483,6 +483,8 @@ export default function Home() {
   const [dumpsterFeed, setDumpsterFeed] = useState<DumpsterPost[]>([]);
   const [dumpsterLoading, setDumpsterLoading] = useState(false);
   const [dumpsterFilter, setDumpsterFilter] = useState<string | null>(null);
+  const [dumpsterModeFilter, setDumpsterModeFilter] = useState<string | null>(null);
+  const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
   const [dumpsterPosting, setDumpsterPosting] = useState(false);
   const [meToodPosts, setMeToodPosts] = useState<Set<string>>(() => {
     try { const raw = localStorage.getItem("dumpster-metoo"); return raw ? new Set(JSON.parse(raw)) : new Set(); } catch { return new Set(); }
@@ -958,10 +960,14 @@ export default function Home() {
   const CurrentCharacter = activeMode ? CHARACTER_MAP[activeMode] : null;
 
   /* ─── THE DUMPSTER ─── */
-  const fetchDumpsterFeed = useCallback(async (topicFilter?: string | null) => {
+  const fetchDumpsterFeed = useCallback(async (topicFilter?: string | null, modeFilter?: string | null) => {
     setDumpsterLoading(true);
     try {
-      const url = topicFilter ? `/api/dumpster?topic=${topicFilter}` : "/api/dumpster";
+      const params = new URLSearchParams();
+      if (topicFilter) params.set("topic", topicFilter);
+      if (modeFilter) params.set("mode", modeFilter);
+      const qs = params.toString();
+      const url = `/api/dumpster${qs ? `?${qs}` : ""}`;
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
@@ -1010,9 +1016,9 @@ export default function Home() {
 
   useEffect(() => {
     if (mobileTab === "dumpster" || (!isMobile && activeMode === null)) {
-      fetchDumpsterFeed(dumpsterFilter);
+      fetchDumpsterFeed(dumpsterFilter, dumpsterModeFilter);
     }
-  }, [mobileTab, dumpsterFilter, fetchDumpsterFeed, isMobile, activeMode]);
+  }, [mobileTab, dumpsterFilter, dumpsterModeFilter, fetchDumpsterFeed, isMobile, activeMode]);
 
   /* ─── MOOD CHECK-IN ─── */
   const MoodPicker = ({ value, onChange, label }: { value: number | null; onChange: (v: number) => void; label: string }) => (
@@ -1212,12 +1218,45 @@ export default function Home() {
   };
 
   /* ─── THE DUMPSTER FEED VIEW ─── */
-  const DumpsterFeedView = () => (
+  const ME_TOO_LABELS: Record<string, string> = {
+    bull: "rages",
+    devil: "challenges",
+    wizard: "relates",
+    lol: "laughs",
+    silence: "feels this",
+    riff: "vibes",
+  };
+
+  const DumpsterFeedView = () => {
+    const isExpanded = (id: string) => expandedPosts.has(id);
+    const toggleExpand = (id: string) => {
+      const next = new Set(expandedPosts);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      setExpandedPosts(next);
+    };
+
+    return (
     <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 pb-24">
       <div className="max-w-lg mx-auto">
-        <div className="text-center mb-4">
+        <div className="text-center mb-3">
           <p className="text-lg font-bold text-foreground">The Dumpster</p>
           <p className="text-xs text-foreground/40">Anonymous vents. Auto-deletes in 24h. You&apos;re not alone.</p>
+        </div>
+
+        {/* Style filter (mode) */}
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar mb-2 pb-1">
+          <button
+            onClick={() => setDumpsterModeFilter(null)}
+            className="text-[11px] px-2.5 py-1 rounded-full cursor-pointer font-medium shrink-0 transition-all"
+            style={!dumpsterModeFilter ? { background: darkMode ? "#555" : "#333", color: "#fff" } : { border: "1px solid var(--color-border)", color: darkMode ? "#aaa" : "#888" }}
+          >All styles</button>
+          {MODES.filter(m => m.id !== "silence").map(m => (
+            <button key={m.id}
+              onClick={() => setDumpsterModeFilter(dumpsterModeFilter === m.id ? null : m.id)}
+              className="text-[11px] px-2.5 py-1 rounded-full cursor-pointer font-medium shrink-0 transition-all"
+              style={dumpsterModeFilter === m.id ? { background: m.color, color: "#fff" } : { border: "1px solid var(--color-border)", color: darkMode ? "#aaa" : "#888" }}
+            >{m.label}</button>
+          ))}
         </div>
 
         {/* Topic filter */}
@@ -1226,7 +1265,7 @@ export default function Home() {
             onClick={() => setDumpsterFilter(null)}
             className="text-[11px] px-2.5 py-1 rounded-full cursor-pointer font-medium shrink-0 transition-all"
             style={!dumpsterFilter ? { background: darkMode ? "#555" : "#333", color: "#fff" } : { border: "1px solid var(--color-border)", color: darkMode ? "#aaa" : "#888" }}
-          >All</button>
+          >All topics</button>
           {TOPICS.map(t => (
             <button key={t.id}
               onClick={() => setDumpsterFilter(dumpsterFilter === t.id ? null : t.id)}
@@ -1255,6 +1294,12 @@ export default function Home() {
             const postMode = MODES.find(m => m.id === post.mode);
             const PostChar = CHARACTER_MAP[post.mode as Mode];
             const alreadyMeTooed = meToodPosts.has(post.id);
+            const expanded = isExpanded(post.id);
+            const previewMessages = post.messages.slice(0, 2);
+            const hasMore = post.messages.length > 2;
+            const displayMessages = expanded ? post.messages : previewMessages;
+            const meTooLabel = ME_TOO_LABELS[post.mode] || "me too";
+
             return (
               <div key={post.id} className="bg-white border border-border rounded-xl p-4">
                 {/* Post header */}
@@ -1267,7 +1312,7 @@ export default function Home() {
                 </div>
                 {/* Messages */}
                 <div className="space-y-2">
-                  {post.messages.slice(0, 6).map((msg, i) => (
+                  {displayMessages.map((msg, i) => (
                     <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                       <div
                         className="max-w-[85%] rounded-2xl px-3 py-2 text-xs leading-relaxed"
@@ -1278,25 +1323,29 @@ export default function Home() {
                       >{msg.content}</div>
                     </div>
                   ))}
-                  {post.messages.length > 6 && (
-                    <p className="text-[10px] text-foreground/30 text-center">+{post.messages.length - 6} more messages</p>
-                  )}
                 </div>
+                {/* Expand/collapse */}
+                {hasMore && (
+                  <button onClick={() => toggleExpand(post.id)}
+                    className="w-full text-center text-[11px] text-foreground/40 hover:text-foreground/60 cursor-pointer mt-2 py-1">
+                    {expanded ? "show less" : `+${post.messages.length - 2} more messages`}
+                  </button>
+                )}
                 {/* Footer: me too + views + timestamp */}
-                <div className="flex items-center gap-3 mt-3 pt-2 border-t border-border/50">
+                <div className="flex items-center gap-3 mt-2 pt-2 border-t border-border/50">
                   <button
                     onClick={() => handleMeToo(post.id)}
                     disabled={alreadyMeTooed}
                     className="flex items-center gap-1.5 text-[11px] cursor-pointer transition-all active:scale-95"
-                    style={{ color: alreadyMeTooed ? (darkMode ? "#e0ddd8" : "#333") : (darkMode ? "#888" : "#aaa") }}
+                    style={{ color: alreadyMeTooed ? (postMode?.color || (darkMode ? "#e0ddd8" : "#333")) : (darkMode ? "#888" : "#aaa") }}
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill={alreadyMeTooed ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M7 11l5-5 5 5M12 6v12"/>
                     </svg>
-                    <span className="font-medium">me too{post.meTooCount > 0 ? ` (${post.meTooCount})` : ""}</span>
+                    <span className="font-medium">{meTooLabel}{post.meTooCount > 0 ? ` (${post.meTooCount})` : ""}</span>
                   </button>
                   <span className="text-[10px] text-foreground/25 ml-auto">
-                    {post.viewCount > 0 && `${post.viewCount} ${post.viewCount === 1 ? "read" : "reads"} · `}
+                    {post.viewCount > 0 && `${post.viewCount} ${post.viewCount === 1 ? "read" : "reads"} \u00b7 `}
                     {new Date(post.timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
                   </span>
                 </div>
@@ -1306,7 +1355,8 @@ export default function Home() {
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
   /* ─── MOBILE BOTTOM NAV ─── */
   const MobileNav = () => (
