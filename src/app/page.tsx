@@ -1578,8 +1578,8 @@ export default function Home() {
               </div>
             )}
 
-            <p className="text-[10px] sm:text-xs mt-2 sm:mt-10 text-muted/40">everything auto-deletes in 24 hours</p>
-            <p className="text-[10px] sm:text-xs mt-0.5 text-muted/40 mb-2">your trash is your trash. we don&apos;t dig through it.</p>
+            <p className="text-[10px] sm:text-xs mt-1 sm:mt-10 text-muted/40">everything auto-deletes in 24 hours</p>
+            <p className="text-[10px] sm:text-xs mt-0.5 text-muted/40 mb-1">your trash is your trash. we don&apos;t dig through it.</p>
           </div>
         </div>
 
