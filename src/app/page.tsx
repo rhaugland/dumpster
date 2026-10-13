@@ -1483,8 +1483,8 @@ export default function Home() {
 
         {/* Hero */}
         {isMobile && <div className="shrink-0" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }} />}
-        <div className={`flex-1 ${isMobile ? "overflow-hidden flex flex-col pt-3" : "overflow-y-auto pt-10"} px-4 sm:px-6 ${isMobile && isLoggedIn ? "pb-20" : "pb-6"}`}>
-          <div className={`max-w-lg mx-auto flex flex-col items-center ${isMobile ? "flex-1 min-h-0" : ""}`}>
+        <div className={`flex-1 min-h-0 ${isMobile ? "overflow-y-auto pt-2" : "overflow-y-auto pt-10"} px-4 sm:px-6 ${isMobile && isLoggedIn ? "pb-20" : "pb-6"}`}>
+          <div className="max-w-lg mx-auto flex flex-col items-center">
             <DumpsterLogo size={isMobile ? 40 : 80} />
             <h1 className="text-2xl sm:text-5xl font-black tracking-tight mt-1 sm:mt-3 mb-0.5 sm:mb-2 text-foreground">Dumpster</h1>
             <p className="text-muted text-xs sm:text-base mb-3 sm:mb-6">toss it. torch it. move on.</p>
@@ -1502,7 +1502,7 @@ export default function Home() {
             )}
 
             {/* Chat list */}
-            <div className={`w-full space-y-2 sm:space-y-3 ${isMobile ? "flex-1 overflow-y-auto min-h-0" : ""}`}>
+            <div className="w-full space-y-2 sm:space-y-3">
               {MODES.map((mode, i) => {
                 const Character = CHARACTER_MAP[mode.id];
                 return (
@@ -1885,35 +1885,33 @@ export default function Home() {
 
       {/* Disposal picker */}
       {showDisposalPicker && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-5 w-full max-w-xs shadow-md border border-border">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 flex items-end sm:items-center justify-center sm:p-4">
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl p-5 w-full sm:max-w-xs shadow-md border border-border pb-[max(1.5rem,env(safe-area-inset-bottom))]">
             <p className="font-semibold text-foreground text-center mb-1">Get rid of it</p>
-            <p className="text-xs text-muted text-center mb-4">Gone forever. No undo.</p>
-            <div className="space-y-1.5 mb-4">
-              {([
-                { id: "torch" as DisposalMethod, label: "Burn it", emoji: "\uD83D\uDD25" },
-                { id: "crumple" as DisposalMethod, label: "Toss it", emoji: "\uD83D\uDDD1\uFE0F" },
-                { id: "swish" as DisposalMethod, label: "Shoot it", emoji: "\uD83C\uDFC0" },
-                { id: "fieldgoal" as DisposalMethod, label: "Kick it", emoji: "\uD83C\uDFC8" },
-                { id: "shred" as DisposalMethod, label: "Shred it", emoji: "\u2702\uFE0F" },
-              ]).map(d => (
-                <button key={d.id} onClick={() => startDisposal(d.id)}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer hover:bg-background transition-colors active:scale-[0.98] text-left">
-                  <span className="text-xl">{d.emoji}</span>
-                  <span className="text-sm font-medium text-foreground/80">{d.label}</span>
-                </button>
-              ))}
-            </div>
+            <p className="text-xs text-muted text-center mb-5">Gone forever. No undo.</p>
             {isLoggedIn && (
               <button onClick={() => { setShowDisposalPicker(false); tossToDumpster(); }}
                 disabled={dumpsterPosting}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer hover:bg-background transition-colors active:scale-[0.98] text-left border-t border-border mt-1 pt-3">
-                <span className="text-xl">&#x1F5D1;&#xFE0F;</span>
-                <span className="text-sm font-medium text-foreground/80">{dumpsterPosting ? "Tossing..." : "Toss to the dumpster"}</span>
-                <span className="ml-auto text-[10px] text-foreground/30">post anonymously</span>
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl cursor-pointer transition-colors active:scale-[0.98] text-left mb-2"
+                style={{ background: currentMode?.color || "#333" }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18M5 6l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M10 3h4"/>
+                </svg>
+                <div>
+                  <span className="text-sm font-semibold text-white">{dumpsterPosting ? "Tossing..." : "Toss to the dumpster"}</span>
+                  <p className="text-[10px] text-white/60">posted anonymously, gone in 24h</p>
+                </div>
               </button>
             )}
-            <button onClick={() => setShowDisposalPicker(false)} className="w-full py-2 text-sm text-muted hover:text-foreground cursor-pointer">Never mind</button>
+            <button onClick={() => startDisposal("torch")}
+              className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl cursor-pointer hover:bg-background transition-colors active:scale-[0.98] text-left border border-border">
+              <span className="text-xl">{"\uD83D\uDD25"}</span>
+              <div>
+                <span className="text-sm font-medium text-foreground/80">Burn it</span>
+                <p className="text-[10px] text-foreground/40">destroyed forever, no one sees it</p>
+              </div>
+            </button>
+            <button onClick={() => setShowDisposalPicker(false)} className="w-full py-2.5 text-sm text-muted hover:text-foreground cursor-pointer mt-3">Never mind</button>
           </div>
         </div>
       )}
