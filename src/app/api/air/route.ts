@@ -1,10 +1,7 @@
-import { Redis } from "@upstash/redis";
+import { neon } from "@neondatabase/serverless";
 import { NextRequest, NextResponse } from "next/server";
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL || "",
-  token: process.env.UPSTASH_REDIS_REST_TOKEN || "",
-});
+const sql = neon(process.env.DATABASE_URL || "");
 
 interface AiredPost {
   id: string;
@@ -37,29 +34,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No messages to air" }, { status: 400 });
     }
 
-    const post: AiredPost = {
-      id: `air_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      anonName: getAnonName(email),
-      topic: topic || "life",
-      mode: mode || "bull",
-      messages: chatMessages.map((m: { role: string; content: string }) => ({
-        role: m.role,
-        content: m.content,
-      })),
-      timestamp: Date.now(),
-    };
+    const id = `air_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const anonName = getAnonName(email);
+    const cleanMessages = JSON.stringify(chatMessages.map((m: { role: string; content: string }) => ({
+      role: m.role,
+      content: m.content,
+    })));
+    const postTopic = topic || "life";
+    const postMode = mode || "bull";
 
-    // Store post and add to sorted set for ordering
-    await redis.set(`air:${post.id}`, JSON.stringify(post), { ex: 86400 }); // 24h expiry
-    await redis.zadd("air:feed", { score: post.timestamp, member: post.id });
+    await sql`INSERT INTO aired_posts (id, anon_name, topic, mode, messages) VALUES (${id}, ${anonName}, ${postTopic}, ${postMode}, ${cleanMessages}::jsonb)`;
 
-    // Also add to topic-specific feed
-    await redis.zadd(`air:topic:${post.topic}`, {
-      score: post.timestamp,
-      member: post.id,
-    });
-
-    return NextResponse.json({ id: post.id, anonName: post.anonName });
+    return NextResponse.json({ id, anonName });
   } catch (error) {
     console.error("Air API error:", error);
     return NextResponse.json(
@@ -75,29 +61,34 @@ export async function GET(req: NextRequest) {
     const cursor = parseInt(req.nextUrl.searchParams.get("cursor") || "0");
     const limit = 20;
 
-    const feedKey = topic ? `air:topic:${topic}` : "air:feed";
+    // Auto-clean posts older than 24h
+    await sql`DELETE FROM aired_posts WHERE created_at < NOW() - INTERVAL '24 hours'`;
 
-    // Get post IDs sorted by timestamp (newest first)
-    const postIds = await redis.zrange(feedKey, cursor, cursor + limit - 1, {
-      rev: true,
-    });
-
-    if (!postIds || postIds.length === 0) {
-      return NextResponse.json({ posts: [], hasMore: false });
+    let rows;
+    if (topic) {
+      rows = await sql`SELECT * FROM aired_posts WHERE topic = ${topic} ORDER BY created_at DESC LIMIT ${limit} OFFSET ${cursor}`;
+    } else {
+      rows = await sql`SELECT * FROM aired_posts ORDER BY created_at DESC LIMIT ${limit} OFFSET ${cursor}`;
     }
 
-    // Fetch each post
-    const posts: AiredPost[] = [];
-    for (const id of postIds) {
-      const raw = await redis.get(`air:${id}`);
-      if (raw) {
-        const post = typeof raw === "string" ? JSON.parse(raw) : raw;
-        posts.push(post);
-      }
-    }
+    const posts: AiredPost[] = rows.map((row) => ({
+      id: row.id as string,
+      anonName: row.anon_name as string,
+      topic: row.topic as string,
+      mode: row.mode as string,
+      messages: typeof row.messages === "string" ? JSON.parse(row.messages) : row.messages,
+      timestamp: new Date(row.created_at as string).getTime(),
+    }));
 
-    const total = await redis.zcard(feedKey);
-    const hasMore = cursor + limit < (total || 0);
+    // Check if there are more
+    let totalRows;
+    if (topic) {
+      totalRows = await sql`SELECT COUNT(*) as count FROM aired_posts WHERE topic = ${topic}`;
+    } else {
+      totalRows = await sql`SELECT COUNT(*) as count FROM aired_posts`;
+    }
+    const total = parseInt(totalRows[0].count as string);
+    const hasMore = cursor + limit < total;
 
     return NextResponse.json({ posts, hasMore });
   } catch (error) {
