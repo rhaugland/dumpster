@@ -26,9 +26,6 @@ html, body {
   body { height: 100%; overflow: hidden; }
 }
 
-/* Safe area header padding */
-.safe-top { padding-top: env(safe-area-inset-top, 0px); }
-.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
 
 /* Dynamic viewport height */
 .h-dvh { height: 100dvh; }

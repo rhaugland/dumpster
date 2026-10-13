@@ -1361,7 +1361,8 @@ export default function Home() {
     if (isMobile && isLoggedIn && mobileTab === "dumpster") {
       return (
         <div className="min-h-screen flex flex-col">
-          <div className="px-4 py-3 border-b border-border bg-white/80 backdrop-blur-sm safe-top">
+          <div className="bg-white/80 backdrop-blur-sm" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }} />
+          <div className="px-4 py-3 border-b border-border bg-white/80 backdrop-blur-sm">
             <h2 className="text-lg font-bold text-center">The Dumpster</h2>
           </div>
           <DumpsterFeedView />
@@ -1375,7 +1376,8 @@ export default function Home() {
     if (isMobile && isLoggedIn && mobileTab === "profile") {
       return (
         <div className="min-h-screen flex flex-col">
-          <div className="px-4 py-3 border-b border-border bg-white/80 backdrop-blur-sm safe-top">
+          <div className="bg-white/80 backdrop-blur-sm" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }} />
+          <div className="px-4 py-3 border-b border-border bg-white/80 backdrop-blur-sm">
             <h2 className="text-lg font-bold text-center">Profile</h2>
           </div>
           <ProfileView />
@@ -1480,7 +1482,7 @@ export default function Home() {
         )}
 
         {/* Hero */}
-        <div className={`flex-1 ${isMobile ? "overflow-hidden flex flex-col safe-top" : "overflow-y-auto"} px-4 sm:px-6 sm:pt-10 ${isMobile && isLoggedIn ? "pb-20" : "pb-6"}`}>
+        <div className={`flex-1 ${isMobile ? "overflow-hidden flex flex-col" : "overflow-y-auto"} px-4 sm:px-6 sm:pt-10 ${isMobile && isLoggedIn ? "pb-20" : "pb-6"}`} style={{ paddingTop: isMobile ? "env(safe-area-inset-top, 1rem)" : undefined }}>
           <div className={`max-w-lg mx-auto flex flex-col items-center ${isMobile ? "flex-1 min-h-0" : ""}`}>
             <DumpsterLogo size={isMobile ? 48 : 80} />
             <h1 className="text-2xl sm:text-5xl font-black tracking-tight mt-1 sm:mt-3 mb-0.5 sm:mb-2 text-foreground">Dumpster</h1>
@@ -1588,8 +1590,10 @@ export default function Home() {
 
   /* ─── CHAT ─── */
   return (
-    <div className="flex flex-col relative" style={{ height: vvHeight && keyboardOpen ? `${vvHeight}px` : "100dvh" }}>
-      <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-b border-border bg-white/80 backdrop-blur-sm safe-top">
+    <div className="fixed inset-0 flex flex-col" style={keyboardOpen && vvHeight ? { height: `${vvHeight}px`, top: "auto", bottom: 0 } : undefined}>
+      {/* Safe area spacer */}
+      <div className="shrink-0 bg-white/80 backdrop-blur-sm" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }} />
+      <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-b border-border bg-white/80 backdrop-blur-sm">
         <button onClick={() => {
           if (isLoggedIn && messages.filter(m => m.role === "user").length > 0) {
             setShowTossToDumpster(true);
@@ -2051,8 +2055,9 @@ export default function Home() {
         </div>
       )}
 
-      <div className={`border-t border-border bg-white/80 backdrop-blur-sm px-2 sm:px-4 pt-2 sm:pt-3 ${isMobile && isLoggedIn && !keyboardOpen ? "pb-14" : isMobile ? "pb-2" : "pb-2 sm:pb-4"}`}>
-        <p className="max-w-2xl mx-auto text-[10px] sm:text-[11px] text-muted/50 mb-1 sm:mb-2 px-1">auto-deletes in 24 hours</p>
+      <div className="border-t border-border bg-white/80 backdrop-blur-sm px-2 sm:px-4 pt-1 sm:pt-3"
+        style={{ paddingBottom: isMobile && isLoggedIn && !keyboardOpen ? "60px" : isMobile && keyboardOpen ? "0px" : isMobile ? "env(safe-area-inset-bottom, 4px)" : "16px" }}>
+        <p className="max-w-2xl mx-auto text-[10px] sm:text-[11px] text-muted/50 mb-1 sm:mb-1 px-1">auto-deletes in 24 hours</p>
         <div className="max-w-2xl mx-auto flex items-end bg-white border border-border rounded-xl sm:rounded-2xl overflow-hidden" style={{ minHeight: isMobile ? "42px" : "48px" }}>
           {!topic && activeMode !== "riff" ? (
             <div className="flex-1 px-3 py-2 sm:py-3">
