@@ -452,7 +452,7 @@ export default function Home() {
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
   const [lockCountdown, setLockCountdown] = useState("");
   const messageTimes = useRef<number[]>([]);
-  const [mobileTab, setMobileTab] = useState<"chats" | "dumpster" | "profile">("chats");
+  const [mobileTab, setMobileTab] = useState<"chats" | "dumpster" | "saved" | "profile">("chats");
   const [isMobile, setIsMobile] = useState(false);
 
   // New feature states
@@ -486,6 +486,9 @@ export default function Home() {
   const [dumpsterModeFilter, setDumpsterModeFilter] = useState<string | null>(null);
   const [expandedPosts, setExpandedPosts] = useState<Set<string>>(new Set());
   const [showDumpsterFilters, setShowDumpsterFilters] = useState(false);
+  const [savedPosts, setSavedPosts] = useState<DumpsterPost[]>(() => {
+    try { const raw = localStorage.getItem("dumpster-saved"); return raw ? JSON.parse(raw) : []; } catch { return []; }
+  });
   const [dumpsterPosting, setDumpsterPosting] = useState(false);
   const [meToodPosts, setMeToodPosts] = useState<Set<string>>(() => {
     try { const raw = localStorage.getItem("dumpster-metoo"); return raw ? new Set(JSON.parse(raw)) : new Set(); } catch { return new Set(); }
@@ -1015,6 +1018,15 @@ export default function Home() {
     } catch {}
   };
 
+  const toggleSavePost = (post: DumpsterPost) => {
+    const exists = savedPosts.some(p => p.id === post.id);
+    const updated = exists ? savedPosts.filter(p => p.id !== post.id) : [...savedPosts, post];
+    setSavedPosts(updated);
+    localStorage.setItem("dumpster-saved", JSON.stringify(updated));
+  };
+
+  const isPostSaved = (id: string) => savedPosts.some(p => p.id === id);
+
   useEffect(() => {
     if (mobileTab === "dumpster" || (!isMobile && activeMode === null)) {
       fetchDumpsterFeed(dumpsterFilter, dumpsterModeFilter);
@@ -1208,7 +1220,7 @@ export default function Home() {
           <div className="bg-white border border-border rounded-2xl p-5">
             <p className="text-xs font-bold text-foreground/60 uppercase tracking-wider mb-3">About</p>
             <div className="space-y-2 text-xs text-foreground/50">
-              <p>Everything auto-deletes in 24 hours.</p>
+              <p>Chats auto-delete in 24 hours. Dumpster posts stay for 30 days.</p>
               <p>Your trash is your trash. We don&apos;t dig through it.</p>
               <p>We never save what you say --- just how often you torch it.</p>
             </div>
@@ -1242,7 +1254,7 @@ export default function Home() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-lg font-bold text-foreground">The Dumpster</p>
-            <p className="text-xs text-foreground/40">Anonymous vents. Gone in 24h.</p>
+            <p className="text-xs text-foreground/40">Anonymous vents. Gone in 30 days.</p>
           </div>
           <button onClick={() => setShowDumpsterFilters(!showDumpsterFilters)}
             className="relative flex items-center gap-1.5 px-3 py-2 rounded-xl cursor-pointer transition-all active:scale-95"
@@ -1356,7 +1368,7 @@ export default function Home() {
                     {expanded ? "show less" : `+${post.messages.length - 2} more messages`}
                   </button>
                 )}
-                {/* Footer: me too + views + timestamp */}
+                {/* Footer: me too + save + views + timestamp */}
                 <div className="flex items-center gap-3 mt-2 pt-2 border-t border-border/50">
                   <button
                     onClick={() => handleMeToo(post.id)}
@@ -1368,6 +1380,16 @@ export default function Home() {
                       <path d="M7 11l5-5 5 5M12 6v12"/>
                     </svg>
                     <span className="font-medium">{meTooLabel}{post.meTooCount > 0 ? ` (${post.meTooCount})` : ""}</span>
+                  </button>
+                  <button
+                    onClick={() => toggleSavePost(post)}
+                    className="flex items-center gap-1 text-[11px] cursor-pointer transition-all active:scale-95"
+                    style={{ color: isPostSaved(post.id) ? (darkMode ? "#e0ddd8" : "#333") : (darkMode ? "#888" : "#aaa") }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill={isPostSaved(post.id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    <span className="font-medium">{isPostSaved(post.id) ? "saved" : "save"}</span>
                   </button>
                   <span className="text-[10px] text-foreground/25 ml-auto">
                     {post.viewCount > 0 && `${post.viewCount} ${post.viewCount === 1 ? "read" : "reads"} \u00b7 `}
@@ -1387,19 +1409,25 @@ export default function Home() {
   const MobileNav = () => (
     <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-border z-50 sm:hidden">
       <div className="flex items-center justify-around py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-        <button onClick={() => { setMobileTab("chats"); if (activeMode) { setActiveMode(null); } }} className="flex flex-col items-center gap-0.5 px-6 py-1 cursor-pointer">
+        <button onClick={() => { setMobileTab("chats"); if (activeMode) { setActiveMode(null); } }} className="flex flex-col items-center gap-0.5 px-4 py-1 cursor-pointer">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={mobileTab === "chats" && !activeMode ? (darkMode ? "#e0ddd8" : "#333") : "#aaa"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
           </svg>
           <span className="text-[10px] font-medium" style={{ color: mobileTab === "chats" && !activeMode ? (darkMode ? "#e0ddd8" : "#333") : "#aaa" }}>Chats</span>
         </button>
-        <button onClick={() => { setMobileTab("dumpster"); setActiveMode(null); }} className="flex flex-col items-center gap-0.5 px-6 py-1 cursor-pointer">
+        <button onClick={() => { setMobileTab("dumpster"); setActiveMode(null); }} className="flex flex-col items-center gap-0.5 px-4 py-1 cursor-pointer">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={mobileTab === "dumpster" ? (darkMode ? "#e0ddd8" : "#333") : "#aaa"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 6h18M5 6l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M10 3h4"/>
           </svg>
           <span className="text-[10px] font-medium" style={{ color: mobileTab === "dumpster" ? (darkMode ? "#e0ddd8" : "#333") : "#aaa" }}>Dumpster</span>
         </button>
-        <button onClick={() => { setMobileTab("profile"); setActiveMode(null); }} className="flex flex-col items-center gap-0.5 px-6 py-1 cursor-pointer">
+        <button onClick={() => { setMobileTab("saved"); setActiveMode(null); }} className="flex flex-col items-center gap-0.5 px-4 py-1 cursor-pointer">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={mobileTab === "saved" ? (darkMode ? "#e0ddd8" : "#333") : "#aaa"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+          </svg>
+          <span className="text-[10px] font-medium" style={{ color: mobileTab === "saved" ? (darkMode ? "#e0ddd8" : "#333") : "#aaa" }}>Saved</span>
+        </button>
+        <button onClick={() => { setMobileTab("profile"); setActiveMode(null); }} className="flex flex-col items-center gap-0.5 px-4 py-1 cursor-pointer">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={mobileTab === "profile" ? (darkMode ? "#e0ddd8" : "#333") : "#aaa"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
             <circle cx="12" cy="7" r="4"/>
@@ -1441,6 +1469,90 @@ export default function Home() {
             <h2 className="text-lg font-bold text-center">The Dumpster</h2>
           </div>
           <DumpsterFeedView />
+          <MobileNav />
+          <AchievementToast />
+        </div>
+      );
+    }
+
+    // Mobile saved tab
+    if (isMobile && isLoggedIn && mobileTab === "saved") {
+      return (
+        <div className="min-h-screen flex flex-col">
+          <div className="bg-white/80 backdrop-blur-sm" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }} />
+          <div className="px-4 py-3 border-b border-border bg-white/80 backdrop-blur-sm">
+            <h2 className="text-lg font-bold text-center">Saved</h2>
+          </div>
+          <div className="flex-1 overflow-y-auto px-3 py-4 pb-24">
+            <div className="max-w-lg mx-auto">
+              {savedPosts.length === 0 ? (
+                <div className="text-center py-10">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={darkMode ? "#555" : "#ccc"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-3">
+                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                  </svg>
+                  <p className="text-sm text-foreground/50">No saved posts yet.</p>
+                  <p className="text-xs text-foreground/30 mt-1">Bookmark posts from the dumpster to keep them forever.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {savedPosts.map(post => {
+                    const postMode = MODES.find(m => m.id === post.mode);
+                    const PostChar = CHARACTER_MAP[post.mode as Mode];
+                    const expanded = expandedPosts.has(post.id);
+                    const previewMessages = post.messages.slice(0, 2);
+                    const hasMore = post.messages.length > 2;
+                    const displayMessages = expanded ? post.messages : previewMessages;
+
+                    return (
+                      <div key={post.id} className="bg-white border border-border rounded-xl p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          {PostChar && <PostChar size={20} />}
+                          <span className="text-xs font-bold" style={{ color: postMode?.color }}>{postMode?.label}</span>
+                          <span className="text-[10px] text-foreground/30">&#x2022;</span>
+                          <span className="text-[10px] text-foreground/40 capitalize">{post.topic}</span>
+                          <span className="ml-auto text-[10px] text-foreground/30">{post.anonName}</span>
+                        </div>
+                        <div className="space-y-2">
+                          {displayMessages.map((msg, i) => (
+                            <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                              <div
+                                className="max-w-[85%] rounded-2xl px-3 py-2 text-xs leading-relaxed"
+                                style={msg.role === "user"
+                                  ? { background: darkMode ? "#3a3530" : "#ede8df", color: darkMode ? "#e0ddd8" : "#333" }
+                                  : { background: darkMode ? "var(--color-surface)" : "#f8f6f2", color: darkMode ? "#e0ddd8" : "#555" }
+                                }
+                              >{msg.content}</div>
+                            </div>
+                          ))}
+                        </div>
+                        {hasMore && (
+                          <button onClick={() => { const next = new Set(expandedPosts); if (next.has(post.id)) next.delete(post.id); else next.add(post.id); setExpandedPosts(next); }}
+                            className="w-full text-center text-[11px] text-foreground/40 hover:text-foreground/60 cursor-pointer mt-2 py-1">
+                            {expanded ? "show less" : `+${post.messages.length - 2} more messages`}
+                          </button>
+                        )}
+                        <div className="flex items-center gap-3 mt-2 pt-2 border-t border-border/50">
+                          <button
+                            onClick={() => toggleSavePost(post)}
+                            className="flex items-center gap-1 text-[11px] cursor-pointer transition-all active:scale-95"
+                            style={{ color: darkMode ? "#e0ddd8" : "#333" }}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                            </svg>
+                            <span className="font-medium">unsave</span>
+                          </button>
+                          <span className="text-[10px] text-foreground/25 ml-auto">
+                            {new Date(post.timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
           <MobileNav />
           <AchievementToast />
         </div>
@@ -1653,7 +1765,7 @@ export default function Home() {
               </div>
             )}
 
-            <p className="text-[10px] sm:text-xs mt-1 sm:mt-10 text-muted/40">everything auto-deletes in 24 hours</p>
+            <p className="text-[10px] sm:text-xs mt-1 sm:mt-10 text-muted/40">chats auto-delete in 24 hours</p>
             <p className="text-[10px] sm:text-xs mt-0.5 text-muted/40 mb-1">your trash is your trash. we don&apos;t dig through it.</p>
           </div>
         </div>
@@ -1974,7 +2086,7 @@ export default function Home() {
                 </svg>
                 <div>
                   <span className="text-sm font-semibold text-white">{dumpsterPosting ? "Tossing..." : "Toss to the dumpster"}</span>
-                  <p className="text-[10px] text-white/60">posted anonymously, gone in 24h</p>
+                  <p className="text-[10px] text-white/60">posted anonymously, gone in 30 days</p>
                 </div>
               </button>
             )}
@@ -2073,16 +2185,16 @@ export default function Home() {
             <div className="text-center mb-5">
               <DumpsterLogo size={40} />
               <p className="font-semibold text-foreground mt-3">Done venting?</p>
-              <p className="text-xs text-foreground/50 mt-1">Toss it to the dumpster so others know they&apos;re not alone. Posted anonymously, gone in 24h.</p>
+              <p className="text-xs text-foreground/50 mt-1">Toss it to the dumpster so others know they&apos;re not alone. Posted anonymously, gone in 30 days.</p>
             </div>
             <button onClick={tossToDumpster} disabled={dumpsterPosting}
               className="w-full py-3 rounded-xl text-sm font-semibold text-white cursor-pointer mb-2 active:scale-[0.98] transition-transform"
               style={{ background: currentMode?.color || "#333" }}>
               {dumpsterPosting ? "Tossing..." : "Toss to the dumpster"}
             </button>
-            <button onClick={() => { setShowTossToDumpster(false); setShowDisposalPicker(true); }}
+            <button onClick={() => { setShowTossToDumpster(false); startDisposal("torch"); }}
               className="w-full py-2.5 rounded-xl text-sm font-medium text-foreground/60 hover:text-foreground cursor-pointer border border-border">
-              Destroy it instead
+              Burn it instead
             </button>
             <button onClick={() => { setShowTossToDumpster(false); setActiveMode(null); }}
               className="w-full py-2 text-xs text-foreground/30 hover:text-foreground/50 cursor-pointer mt-2">
@@ -2131,7 +2243,7 @@ export default function Home() {
 
       <div className="border-t border-border bg-white/80 backdrop-blur-sm px-2 sm:px-4 pt-1 sm:pt-3"
         style={{ paddingBottom: isMobile && isLoggedIn && !keyboardOpen ? "60px" : isMobile && keyboardOpen ? "0px" : isMobile ? "env(safe-area-inset-bottom, 4px)" : "16px" }}>
-        <p className="max-w-2xl mx-auto text-[10px] sm:text-[11px] text-muted/50 mb-1 sm:mb-1 px-1">auto-deletes in 24 hours</p>
+        <p className="max-w-2xl mx-auto text-[10px] sm:text-[11px] text-muted/50 mb-1 sm:mb-1 px-1">chats auto-delete in 24 hours</p>
         <div className="max-w-2xl mx-auto flex items-end bg-white border border-border rounded-xl sm:rounded-2xl overflow-hidden" style={{ minHeight: isMobile ? "42px" : "48px" }}>
           {!topic && activeMode !== "riff" ? (
             <div className="flex-1 px-3 py-2 sm:py-3">

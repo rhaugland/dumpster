@@ -53,8 +53,8 @@ export async function GET(req: NextRequest) {
     const cursor = parseInt(req.nextUrl.searchParams.get("cursor") || "0");
     const limit = 20;
 
-    // Auto-clean posts older than 24h
-    await sql`DELETE FROM aired_posts WHERE created_at < NOW() - INTERVAL '24 hours'`;
+    // Auto-clean posts older than 30 days
+    await sql`DELETE FROM aired_posts WHERE created_at < NOW() - INTERVAL '30 days'`;
 
     let rows;
     if (topic && mode) {

@@ -9,6 +9,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const result = await sql`DELETE FROM aired_posts WHERE created_at < NOW() - INTERVAL '24 hours'`;
+  const result = await sql`DELETE FROM aired_posts WHERE created_at < NOW() - INTERVAL '30 days'`;
   return NextResponse.json({ cleaned: true });
 }
