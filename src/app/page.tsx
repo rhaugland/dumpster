@@ -1482,7 +1482,8 @@ export default function Home() {
         )}
 
         {/* Hero */}
-        <div className={`flex-1 ${isMobile ? "overflow-hidden flex flex-col" : "overflow-y-auto"} px-4 sm:px-6 sm:pt-10 ${isMobile && isLoggedIn ? "pb-20" : "pb-6"}`} style={{ paddingTop: isMobile ? "calc(env(safe-area-inset-top, 0px) + 12px)" : undefined }}>
+        {isMobile && <div className="shrink-0" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }} />}
+        <div className={`flex-1 ${isMobile ? "overflow-hidden flex flex-col pt-3" : "overflow-y-auto pt-10"} px-4 sm:px-6 ${isMobile && isLoggedIn ? "pb-20" : "pb-6"}`}>
           <div className={`max-w-lg mx-auto flex flex-col items-center ${isMobile ? "flex-1 min-h-0" : ""}`}>
             <DumpsterLogo size={isMobile ? 40 : 80} />
             <h1 className="text-2xl sm:text-5xl font-black tracking-tight mt-1 sm:mt-3 mb-0.5 sm:mb-2 text-foreground">Dumpster</h1>
